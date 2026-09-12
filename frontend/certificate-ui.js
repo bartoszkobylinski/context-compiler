@@ -65,6 +65,7 @@
       else tampered.answer += " [tampered]";
       verify(tampered, true);
     });
+    window.dispatchEvent(new CustomEvent("context-receipt-issued", {detail: cert}));
   }
 
   async function verify(cert, tampered) {
