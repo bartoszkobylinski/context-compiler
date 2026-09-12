@@ -9,6 +9,39 @@
     '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
   }[c]));
 
+  const CASES = {
+    '4821': {
+      title: 'Can we actually ship Order #4821?',
+      action: 'Ship complete order today', destination: 'Tromsø, Norway', service: 'PolarExpress Air Next-Day',
+      constraint: '1 parcel', contents: 'Perfume 100 ml + PB20 power bank 20,000 mAh',
+      start: 'Load Order #4821 · mixed restricted goods · one-parcel express request'
+    },
+    '5902': {
+      title: 'Can cold-chain Order #5902 ship safely?',
+      action: 'Meet next-business-day promise', destination: 'Tromsø, Norway', service: 'PolarExpress Air Next-Day',
+      constraint: 'Continuous 2–8°C', contents: 'ArcticBio BIO-28 research kit',
+      start: 'Load Order #5902 · cold-chain requirement · packaging inventory · weather constraints'
+    },
+    '6107': {
+      title: 'Can live-animal Order #6107 leave today?',
+      action: 'Dispatch live gecko today', destination: 'Tromsø, Norway', service: 'Requested express service',
+      constraint: 'Live animal · weekend', contents: 'Ornamental gecko',
+      start: 'Load Order #6107 · live animal · species limits · weekend and weather acceptance'
+    },
+    '7710': {
+      title: 'Can fragile Order #7710 use the cheapest service?',
+      action: 'Ship cheapest, no signature', destination: 'Bergen, Norway', service: 'Standard Economy',
+      constraint: 'Declared value NOK 8,900', contents: 'Hand-blown glass vase',
+      start: 'Load Order #7710 · fragile glass · insurance threshold · customer preference'
+    },
+    '8820': {
+      title: 'Can high-value Order #8820 meet the requested delivery?',
+      action: 'Leave at door before 10:00 Sunday', destination: 'Senja rural address', service: 'PolarExpress Air Next-Day',
+      constraint: 'Declared value NOK 24,900', contents: 'ProCam X camera body',
+      start: 'Load Order #8820 · high value · remote address · Sunday last-mile request'
+    }
+  };
+
   const host = document.createElement('section');
   host.id = 'shippingOps';
   host.className = 'shipping-ops';
@@ -16,19 +49,19 @@
     <div class="shipping-ops-head">
       <div>
         <div class="shipping-ops-kicker">OPERATIONAL DECISION MODE</div>
-        <div class="shipping-ops-title">Can we actually ship Order #4821?</div>
-        <div class="shipping-ops-sub">The agent must turn scattered operational knowledge into a verified action plan.</div>
+        <div class="shipping-ops-title" id="shippingTitle"></div>
+        <div class="shipping-ops-sub">The agent must reconcile scattered, sometimes conflicting operational constraints before releasing an action.</div>
       </div>
       <div class="shipping-ops-state" id="shippingState">READY</div>
     </div>
     <div class="shipping-grid">
       <div class="shipping-order">
         <div class="shipping-label">PROPOSED ACTION</div>
-        <div class="shipping-order-row"><span>Action</span><strong>Ship complete order today</strong></div>
-        <div class="shipping-order-row"><span>Destination</span><strong>Tromsø, Norway</strong></div>
-        <div class="shipping-order-row"><span>Service</span><strong>PolarExpress Air Next-Day</strong></div>
-        <div class="shipping-order-row"><span>Parcel</span><strong>1 parcel</strong></div>
-        <div class="shipping-order-row"><span>Contents</span><strong>Perfume 100 ml + PB20 power bank 20,000 mAh</strong></div>
+        <div class="shipping-order-row"><span>Action</span><strong id="shippingAction"></strong></div>
+        <div class="shipping-order-row"><span>Destination</span><strong id="shippingDestination"></strong></div>
+        <div class="shipping-order-row"><span>Service</span><strong id="shippingService"></strong></div>
+        <div class="shipping-order-row"><span>Conflict surface</span><strong id="shippingConstraint"></strong></div>
+        <div class="shipping-order-row"><span>Contents</span><strong id="shippingContents"></strong></div>
       </div>
       <div class="shipping-path">
         <div class="shipping-label">LIVE DECISION PATH</div>
@@ -43,6 +76,12 @@
     </div>`;
   queryCard.insertAdjacentElement('afterend', host);
 
+  const titleNode = document.getElementById('shippingTitle');
+  const actionNode = document.getElementById('shippingAction');
+  const destinationNode = document.getElementById('shippingDestination');
+  const serviceNode = document.getElementById('shippingService');
+  const constraintNode = document.getElementById('shippingConstraint');
+  const contentsNode = document.getElementById('shippingContents');
   const stateNode = document.getElementById('shippingState');
   const nowNode = document.getElementById('shippingNow');
   const eventsNode = document.getElementById('shippingEvents');
@@ -53,18 +92,32 @@
   let active = false;
   let steps = [];
 
-  function isShippingQuestion() {
-    return /order\s*#?4821|polarexpress|fjord mist|pb20/i.test(question.value || '');
+  function currentCase() {
+    const m = (question.value || '').match(/order\s*#?(4821|5902|6107|7710|8820)/i);
+    return m ? { id: m[1], ...CASES[m[1]] } : null;
+  }
+
+  function syncCaseCard() {
+    const c = currentCase();
+    if (!c) return;
+    titleNode.textContent = c.title;
+    actionNode.textContent = c.action;
+    destinationNode.textContent = c.destination;
+    serviceNode.textContent = c.service;
+    constraintNode.textContent = c.constraint;
+    contentsNode.textContent = c.contents;
   }
 
   function setVisible(show) {
     active = show;
     host.classList.toggle('visible', show);
     if (challengeCard) challengeCard.style.display = show ? 'none' : '';
+    if (show) syncCaseCard();
   }
 
   function resetShipping() {
     if (!active) return;
+    syncCaseCard();
     stateNode.textContent = 'READY';
     stateNode.className = 'shipping-ops-state';
     nowNode.textContent = 'Order loaded. Ready to compile an executable shipping decision.';
@@ -93,12 +146,12 @@
         const verdict = result.valid === true ? 'valid now' : result.valid === false ? 'not valid now' : 'checking validity';
         return `Check ${id}: ${verdict}`;
       }
-      case 'OUTDATED_SOURCE': return 'Reject rule that is not valid for this shipment date';
-      case 'VERIFYING': return 'Verify every claim in the proposed shipping decision';
+      case 'OUTDATED_SOURCE': return 'Reject rule that is not valid for this decision date';
+      case 'VERIFYING': return 'Verify every material claim in the proposed operational plan';
       case 'EVIDENCE_GAP': return 'Decision blocked — missing evidence, agent continues';
-      case 'SUPPORTED': return 'Evidence sufficient — release verified shipping plan';
-      case 'UNKNOWN': return 'Cannot establish a safe shipping plan';
-      case 'CONFLICT': return 'Conflicting rules — hold shipment';
+      case 'SUPPORTED': return 'Evidence sufficient — release verified operational plan';
+      case 'UNKNOWN': return 'Cannot establish a safe operational plan';
+      case 'CONFLICT': return 'Conflicting evidence — hold action';
       default: return event.message || event.type || 'Working';
     }
   }
@@ -110,7 +163,7 @@
   }
 
   function renderSteps() {
-    eventsNode.innerHTML = steps.slice(-8).map(step => `
+    eventsNode.innerHTML = steps.slice(-9).map(step => `
       <div class="shipping-event"><div class="shipping-event-mark">${esc(step.mark)}</div><div><b>${esc(step.text)}</b></div></div>`
     ).join('');
   }
@@ -119,20 +172,21 @@
     const button = event.target.closest('button');
     if (!button) return;
     setTimeout(() => {
-      setVisible(isShippingQuestion());
+      setVisible(Boolean(currentCase()));
       resetShipping();
     }, 0);
   });
 
   question.addEventListener('input', () => {
-    setVisible(isShippingQuestion());
+    setVisible(Boolean(currentCase()));
     if (active) resetShipping();
   });
 
   window.addEventListener('context-run-start', () => {
-    setVisible(isShippingQuestion());
-    if (!active) return;
-    steps = [{mark:'✓', text:'Load Order #4821 and requested one-parcel Air Next-Day plan'}];
+    const c = currentCase();
+    setVisible(Boolean(c));
+    if (!active || !c) return;
+    steps = [{mark:'✓', text:c.start}];
     renderSteps();
     stateNode.textContent = 'COMPILING';
     stateNode.className = 'shipping-ops-state running';
@@ -162,18 +216,16 @@
     nowNode.textContent = supported ? 'Operational decision released with verified evidence.' : 'Shipment held: evidence was not sufficient.';
     resultNode.className = `shipping-result visible ${supported ? 'good' : 'bad'}`;
     resultNode.querySelector('.shipping-result-title').textContent = supported
-      ? 'ORIGINAL PLAN CHECKED → VERIFIED SHIPPING DECISION'
-      : 'SHIPMENT HELD';
-    resultAnswer.textContent = data.answer || 'No verified shipping decision available.';
+      ? 'REQUEST CHECKED → VERIFIED OPERATIONAL DECISION'
+      : 'ACTION HELD';
+    resultAnswer.textContent = data.answer || 'No verified operational decision available.';
     const passed = (data.verification?.checks || []).filter(x => x.ok).length;
     const total = (data.verification?.checks || []).length;
     resultFoot.textContent = supported
-      ? `${passed}/${total} material claims verified · operational evidence receipt available below`
-      : 'No unsafe action is released when the evidence contract fails.';
+      ? `${passed}/${total} material claims verified · evidence release receipt available below`
+      : 'No action is released when the evidence contract fails.';
   });
 
-  // Shipping is now the primary demo, so activate it immediately when the default
-  // Order #4821 question is present. This does not depend on /demo-cases being fresh.
-  setVisible(isShippingQuestion());
+  setVisible(Boolean(currentCase()));
   resetShipping();
 })();
