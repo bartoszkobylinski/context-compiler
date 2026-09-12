@@ -19,15 +19,16 @@ from .tools import (
 from .verifier import verify_answer
 
 
-SYSTEM_PROMPT = """You are Context Compiler, an evidence-building agent.
+SYSTEM_PROMPT = """You are Context Compiler, an evidence-building operational agent.
 
 Your job is NOT to answer immediately. First declare what evidence must be established,
-then use tools iteratively to gather it.
+then use tools iteratively to gather it. Retrieval is a process, not a stopping rule.
 
 Rules:
 1. Your FIRST tool call must be declare_requirements. List the concrete facts that must
    be established before the question can be answered safely.
-2. Treat retrieval as a loop, not a one-shot lookup.
+2. Treat retrieval as a loop, not a one-shot lookup. Reformulate searches when evidence
+   is missing and follow explicit dependencies between documents.
 3. Prefer authoritative and temporally valid sources.
 4. If multiple versions of a policy exist, explicitly inspect the versions and check
    which one was valid at the user's query date.
@@ -44,9 +45,17 @@ Rules:
     - decision: a short verdict about the requested action and the decisive reasons.
     - recommendation: a concrete alternative execution plan, if one is supported.
       If only part of the alternative can be established, state the supported steps and
-      explicitly identify the remaining unknown dependency (for example future weather).
-    Do not bury the recommendation inside the decision paragraph.
+      explicitly identify the remaining unknown dependency.
 12. Keep decision concise. Put procedural next steps in recommendation, not decision.
+13. EVIDENCE CONTRACT: before a SUPPORTED release, copy EVERY requirement declared in
+    the first tool call into requirement_closure using the exact same text. Mark it
+    RESOLVED only when one or more material claims actually establish it, and list those
+    1-based claim indices. A SUPPORTED result may not contain an UNRESOLVED requirement.
+    If a required condition cannot be established, use UNKNOWN or CONFLICT instead.
+14. For operational alternatives, populate plan_candidates with evidence-supported
+    candidate plans when useful. Mark one SELECTED and others REJECTED. Do not invent a
+    candidate just to fill the list. Each candidate must reference the claim indices that
+    justify its feasibility or rejection. recommendation must describe the SELECTED plan.
 
 When you are ready to stop using tools, respond ONLY with JSON in this exact shape:
 {
@@ -62,16 +71,31 @@ When you are ready to stop using tools, respond ONLY with JSON in this exact sha
       "quote": "short exact quote copied verbatim from the document"
     }
   ],
+  "requirement_closure": [
+    {
+      "requirement": "EXACT text copied from declare_requirements",
+      "status": "RESOLVED" | "UNRESOLVED",
+      "claim_indices": [1, 2],
+      "note": "short explanation"
+    }
+  ],
+  "plan_candidates": [
+    {
+      "name": "candidate plan",
+      "status": "SELECTED" | "REJECTED",
+      "reason": "short evidence-based reason",
+      "claim_indices": [1, 2]
+    }
+  ],
   "unresolved": ["anything still not established"]
 }
 
 For SUPPORTED operational decisions, always populate decision. Populate recommendation whenever
-the requested action cannot execute but the corpus supports an alternative, partial alternative,
-or explicit next steps. If the exact next execution date depends on unavailable future evidence,
-recommend the supported future conditions and put the unavailable dependency in unresolved.
-The answer field must contain the same material facts expressed in decision and recommendation so
-the deterministic verifier can check answer coverage.
-If status is UNKNOWN, claims may be empty and unresolved must explain what evidence is missing.
+the requested action cannot execute but the corpus supports an alternative. The answer field must
+contain the same material facts expressed in decision and recommendation so the deterministic
+verifier can check answer coverage. For SUPPORTED, every declared requirement must be present in
+requirement_closure with status RESOLVED and valid supporting claim indices. If status is UNKNOWN
+or CONFLICT, unresolved must explicitly explain the blocking evidence gap or conflict.
 """
 
 
@@ -254,7 +278,7 @@ def _json_from_text(text: str) -> dict[str, Any]:
 
 
 def run_compiler(corpus: dict[str, Document], question: str, query_date: date | None) -> dict[str, Any]:
-    """Run the Anthropic evidence-building loop with a deterministic final verifier."""
+    """Run the Anthropic evidence-building loop with a deterministic final release gate."""
     state = AgentState(question=question, query_date=query_date)
     client = _client()
     requirements_declared = False
@@ -267,7 +291,8 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             "content": (
                 f"Question: {question}\n"
                 f"Query date: {date_text}\n\n"
-                "Build sufficient evidence before answering. If the corpus cannot establish the answer, return UNKNOWN."
+                "Build sufficient evidence before answering. Do not stop merely because retrieval looks relevant. "
+                "Close the declared evidence contract first; otherwise return UNKNOWN or CONFLICT."
             ),
         }
     ]
@@ -340,31 +365,59 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
 
         if answer.get("status") == "SUPPORTED" and not str(answer.get("decision", "")).strip():
             messages.append({"role": "assistant", "content": final_text})
-            messages.append({"role": "user", "content": "A SUPPORTED operational result must include a concise decision field. Add decision and, when an alternative is supported, recommendation. Keep answer as the combined verified prose."})
+            messages.append({"role": "user", "content": "A SUPPORTED operational result must include a concise decision field and a complete requirement_closure. Add recommendation when an alternative is supported."})
             continue
 
-        verification = verify_answer(answer, corpus, query_date)
-        state.events.append(ToolEvent("VERIFYING", f"Deterministically verifying {len(answer.get('claims', []))} material claims and answer coverage", {"checks": verification["checks"], "coverage": verification.get("coverage", {})}))
+        verification = verify_answer(answer, corpus, query_date, declared_requirements=state.unresolved)
+        closure = verification.get("requirement_closure", {})
+        state.events.append(
+            ToolEvent(
+                "REQUIREMENTS_CLOSED",
+                f"{closure.get('resolved', 0)}/{closure.get('total', 0)} evidence requirements resolved",
+                closure,
+            )
+        )
+        state.events.append(
+            ToolEvent(
+                "VERIFYING",
+                f"Deterministically verifying {len(answer.get('claims', []))} material claims, answer coverage, and evidence contract closure",
+                {
+                    "checks": verification["checks"],
+                    "coverage": verification.get("coverage", {}),
+                    "requirement_closure": closure,
+                },
+            )
+        )
 
         if not verification["complete"]:
-            state.events.append(ToolEvent("EVIDENCE_GAP", "Verifier rejected the proposed final answer", {"missing": verification["missing"]}))
+            state.events.append(ToolEvent("EVIDENCE_GAP", "Release gate rejected the proposed final answer", {"missing": verification["missing"]}))
             messages.append({"role": "assistant", "content": final_text})
             messages.append({
                 "role": "user",
                 "content": (
-                    "The deterministic verifier rejected this answer for these reasons:\n- "
+                    "The deterministic release gate rejected this answer for these reasons:\n- "
                     + "\n- ".join(verification["missing"])
-                    + "\nEvery material sentence in answer, decision and recommendation must be supported by the same declared claims. "
-                    "Use tools again to repair the evidence, remove unsupported prose, or return UNKNOWN if it cannot be repaired."
+                    + "\nEvery material sentence must map to a verified claim, and every declared evidence requirement must be explicitly closed by verified claim indices before SUPPORTED release. "
+                    "Use tools again to repair the evidence contract, remove unsupported prose, or return UNKNOWN/CONFLICT if it cannot be closed."
                 ),
             })
             continue
 
         status = answer.get("status")
         if status == "SUPPORTED":
-            state.events.append(ToolEvent("SUPPORTED", f"{len(answer.get('claims', []))}/{len(answer.get('claims', []))} material claims passed deterministic verification", {"checks": verification["checks"], "coverage": verification.get("coverage", {})}))
+            state.events.append(
+                ToolEvent(
+                    "SUPPORTED",
+                    f"Release gate passed: {closure.get('resolved', 0)}/{closure.get('total', 0)} requirements closed and {len(answer.get('claims', []))}/{len(answer.get('claims', []))} claims verified",
+                    {
+                        "checks": verification["checks"],
+                        "coverage": verification.get("coverage", {}),
+                        "requirement_closure": closure,
+                    },
+                )
+            )
         elif status == "UNKNOWN":
-            state.events.append(ToolEvent("UNKNOWN", "Approved corpus does not establish the answer"))
+            state.events.append(ToolEvent("UNKNOWN", "Approved corpus does not establish the full evidence contract"))
         else:
             state.events.append(ToolEvent("CONFLICT", "Approved sources remain in unresolved conflict"))
 
@@ -386,8 +439,16 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         "answer": "UNKNOWN — insufficient verified evidence within the search budget.",
         "events": [e.__dict__ for e in state.events],
         "claims": [],
+        "requirement_closure": [],
+        "plan_candidates": [],
         "unresolved": ["max evidence-gathering steps reached"],
-        "verification": {"complete": True, "missing": [], "checks": [], "coverage": {"complete": True, "checks": [], "uncovered": []}},
+        "verification": {
+            "complete": True,
+            "missing": [],
+            "checks": [],
+            "coverage": {"complete": True, "checks": [], "uncovered": []},
+            "requirement_closure": {"complete": False, "resolved": 0, "total": len(state.unresolved), "checks": [], "missing": []},
+        },
         "requirements": state.unresolved,
         "steps": state.step,
         "model": _model(),
