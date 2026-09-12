@@ -39,12 +39,16 @@ def _numbers(text: str) -> set[str]:
     return set(re.findall(r"\b\d+(?:\.\d+)?\b", text))
 
 
-def _claim_quote_coverage(claim_text: str, quote: str) -> dict[str, Any]:
+def _claim_quote_coverage(claim_text: str, quote: str, source_id: str = "") -> dict[str, Any]:
     """Guard against a claim smuggling in facts not present in its cited quote.
 
     Quotes must still match verbatim in the source. This additional check makes sure the
     model does not append a derived conclusion (for example a transit-time calculation)
     to an otherwise valid quoted rule and present the whole sentence as source-backed.
+
+    Numbers that are part of the cited document identifier (for example Order #5902 in
+    source_id ``order-5902-coldchain``) are metadata labels, not unsupported quantitative
+    facts, so they are allowed even when the body quote does not repeat the identifier.
     """
     claim_terms = _terms(claim_text)
     quote_terms = _terms(quote)
@@ -52,7 +56,8 @@ def _claim_quote_coverage(claim_text: str, quote: str) -> dict[str, Any]:
         return {"covered": True, "score": 1.0, "missing_numbers": []}
 
     score = len(claim_terms & quote_terms) / max(1, len(claim_terms))
-    missing_numbers = sorted(_numbers(claim_text) - _numbers(quote))
+    allowed_identifier_numbers = _numbers(source_id)
+    missing_numbers = sorted(_numbers(claim_text) - _numbers(quote) - allowed_identifier_numbers)
     return {
         "covered": score >= 0.45 and not missing_numbers,
         "score": round(score, 3),
@@ -327,7 +332,7 @@ def verify_answer(
             elif quote not in doc.body:
                 errors.append("supporting quote is not verbatim in cited source")
             else:
-                quote_coverage = _claim_quote_coverage(claim_text, quote)
+                quote_coverage = _claim_quote_coverage(claim_text, quote, source_id)
                 if not quote_coverage["covered"]:
                     detail = f"claim overreaches supporting quote ({quote_coverage['score']:.0%} lexical coverage)"
                     if quote_coverage["missing_numbers"]:
