@@ -25,15 +25,18 @@ Your job is NOT to answer immediately. First determine what evidence is required
 then use tools iteratively to gather it.
 
 Rules:
-1. Treat retrieval as a loop, not a one-shot lookup.
-2. Prefer authoritative and temporally valid sources.
-3. If multiple versions of a policy exist, explicitly inspect the versions and
+1. Your FIRST tool call must be set_evidence_requirements. List 2-6 concise factual
+   propositions that must be established before the question can be answered. These
+   are externally visible requirements, not private reasoning.
+2. Treat retrieval as a loop, not a one-shot lookup.
+3. Prefer authoritative and temporally valid sources.
+4. If multiple versions of a policy exist, explicitly inspect the versions and
    check which one was valid at the user's query date.
-4. If a source references another source needed to answer, follow the reference.
-5. Never infer a policy merely because it sounds likely.
-6. If the approved corpus does not establish the answer, return UNKNOWN.
-7. Before answering, ensure every material factual claim is backed by a source.
-8. For every supported claim include a SHORT VERBATIM quote copied exactly from
+5. If a source references another source needed to answer, follow the reference.
+6. Never infer a policy merely because it sounds likely.
+7. If the approved corpus does not establish the answer, return UNKNOWN.
+8. Before answering, ensure every material factual claim is backed by a source.
+9. For every supported claim include a SHORT VERBATIM quote copied exactly from
    the cited document. The deterministic verifier checks exact quote membership.
 
 When you are ready to stop using tools, respond ONLY with JSON in this exact shape:
@@ -56,6 +59,22 @@ If status is UNKNOWN, claims may be empty and unresolved must explain what evide
 
 
 TOOLS = [
+    {
+        "name": "set_evidence_requirements",
+        "description": "Declare the factual propositions that must be established before answering. Must be the first tool call.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "requirements": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 6,
+                    "items": {"type": "string"},
+                }
+            },
+            "required": ["requirements"],
+        },
+    },
     {
         "name": "semantic_search",
         "description": "Find documents semantically/lexically related to a query. Use for broad discovery.",
@@ -134,6 +153,8 @@ def _model() -> str:
 
 
 def _event_type(tool_name: str, result: Any) -> str:
+    if tool_name == "set_evidence_requirements":
+        return "EVIDENCE_REQUIREMENTS"
     if tool_name in {"semantic_search", "keyword_search"}:
         return "SEARCHING"
     if tool_name == "get_versions":
@@ -148,6 +169,8 @@ def _event_type(tool_name: str, result: Any) -> str:
 
 
 def _execute_tool(corpus: dict[str, Document], name: str, args: dict[str, Any]) -> Any:
+    if name == "set_evidence_requirements":
+        return {"requirements": args["requirements"], "accepted": True}
     if name == "semantic_search":
         return semantic_search(corpus, args["query"], limit=args.get("limit", 5))
     if name == "keyword_search":
@@ -180,6 +203,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
     """Run the Anthropic evidence-building loop with a deterministic final verifier."""
     state = AgentState(question=question, query_date=query_date)
     client = _client()
+    requirements_set = False
 
     date_text = query_date.isoformat() if query_date else "not explicitly supplied"
     messages: list[dict[str, Any]] = [
@@ -212,11 +236,24 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             tool_results = []
             for tool_use in tool_uses:
                 try:
+                    if not requirements_set and tool_use.name != "set_evidence_requirements":
+                        raise ValueError("first tool call must declare evidence requirements")
+                    if requirements_set and tool_use.name == "set_evidence_requirements":
+                        raise ValueError("evidence requirements were already declared")
+
                     result = _execute_tool(corpus, tool_use.name, tool_use.input)
+                    if tool_use.name == "set_evidence_requirements":
+                        requirements_set = True
+                        state.unresolved = list(tool_use.input["requirements"])
+
                     state.events.append(
                         ToolEvent(
                             _event_type(tool_use.name, result),
-                            f"{tool_use.name}({json.dumps(tool_use.input, ensure_ascii=False)})",
+                            (
+                                "Declared what must be established before answering"
+                                if tool_use.name == "set_evidence_requirements"
+                                else f"{tool_use.name}({json.dumps(tool_use.input, ensure_ascii=False)})"
+                            ),
                             {"tool": tool_use.name, "input": tool_use.input, "result": result},
                         )
                     )
@@ -238,6 +275,12 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                         }
                     )
             messages.append({"role": "user", "content": tool_results})
+            continue
+
+        if not requirements_set:
+            state.events.append(ToolEvent("EVIDENCE_GAP", "Model attempted to answer before declaring evidence requirements"))
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": "Do not answer yet. First call set_evidence_requirements as required."})
             continue
 
         if not text_blocks:
@@ -301,6 +344,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             **answer,
             "events": [e.__dict__ for e in state.events],
             "verification": verification,
+            "evidence_requirements": state.unresolved,
             "steps": state.step,
             "model": _model(),
         }
@@ -313,6 +357,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         "claims": [],
         "unresolved": ["max evidence-gathering steps reached"],
         "verification": {"complete": True, "missing": [], "checks": []},
+        "evidence_requirements": state.unresolved,
         "steps": state.step,
         "model": _model(),
     }
