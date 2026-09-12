@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Literal
 
+from .stream_events import EventList
+
 
 @dataclass
 class Document:
@@ -44,6 +46,6 @@ class AgentState:
     evidence: list[Evidence] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
     visited_documents: set[str] = field(default_factory=set)
-    events: list[ToolEvent] = field(default_factory=list)
+    events: list[ToolEvent] = field(default_factory=EventList)
     step: int = 0
     max_steps: int = 16
