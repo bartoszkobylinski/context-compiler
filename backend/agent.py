@@ -37,6 +37,9 @@ Rules:
 8. Before answering, ensure every material factual claim is backed by a source.
 9. For every supported claim include a SHORT VERBATIM quote copied exactly from the
    cited document. The deterministic verifier checks exact quote membership.
+10. Every material factual sentence in the user-facing answer must be represented by
+    one of the claims. Do not add background, predictions, typical behavior, or other
+    prose that is not explicitly covered by a cited claim.
 
 When you are ready to stop using tools, respond ONLY with JSON in this exact shape:
 {
@@ -148,7 +151,7 @@ def _client() -> Anthropic:
 
 
 def _model() -> str:
-    return os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+    return os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
 
 
 def _event_type(tool_name: str, result: Any) -> str:
@@ -242,6 +245,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
     state = AgentState(question=question, query_date=query_date)
     client = _client()
     requirements_declared = False
+    usage = {"input_tokens": 0, "output_tokens": 0}
 
     date_text = query_date.isoformat() if query_date else "not explicitly supplied"
     messages: list[dict[str, Any]] = [
@@ -264,6 +268,10 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             tools=TOOLS,
             messages=messages,
         )
+        response_usage = getattr(response, "usage", None)
+        if response_usage is not None:
+            usage["input_tokens"] += int(getattr(response_usage, "input_tokens", 0) or 0)
+            usage["output_tokens"] += int(getattr(response_usage, "output_tokens", 0) or 0)
 
         tool_uses = [block for block in response.content if getattr(block, "type", None) == "tool_use"]
         text_blocks = [block.text for block in response.content if getattr(block, "type", None) == "text"]
@@ -360,8 +368,11 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         state.events.append(
             ToolEvent(
                 "VERIFYING",
-                f"Deterministically verifying {len(answer.get('claims', []))} material claims",
-                {"checks": verification["checks"]},
+                f"Deterministically verifying {len(answer.get('claims', []))} material claims and answer coverage",
+                {
+                    "checks": verification["checks"],
+                    "coverage": verification.get("coverage", {}),
+                },
             )
         )
 
@@ -380,7 +391,8 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                     "content": (
                         "The deterministic verifier rejected this answer for these reasons:\n- "
                         + "\n- ".join(verification["missing"])
-                        + "\nUse tools again to repair the evidence, or return UNKNOWN if it cannot be repaired."
+                        + "\nEvery material sentence in the answer must map to a declared claim. "
+                        "Use tools again to repair the evidence, remove unsupported prose, or return UNKNOWN if it cannot be repaired."
                     ),
                 }
             )
@@ -392,7 +404,10 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                 ToolEvent(
                     "SUPPORTED",
                     f"{len(answer.get('claims', []))}/{len(answer.get('claims', []))} material claims passed deterministic verification",
-                    {"checks": verification["checks"]},
+                    {
+                        "checks": verification["checks"],
+                        "coverage": verification.get("coverage", {}),
+                    },
                 )
             )
         elif status == "UNKNOWN":
@@ -407,6 +422,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             "requirements": state.unresolved,
             "steps": state.step,
             "model": _model(),
+            "usage": usage,
         }
 
     state.events.append(ToolEvent("UNKNOWN", "Maximum evidence-gathering steps reached"))
@@ -416,8 +432,9 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         "events": [e.__dict__ for e in state.events],
         "claims": [],
         "unresolved": ["max evidence-gathering steps reached"],
-        "verification": {"complete": True, "missing": [], "checks": []},
+        "verification": {"complete": True, "missing": [], "checks": [], "coverage": {"complete": True, "checks": [], "uncovered": []}},
         "requirements": state.unresolved,
         "steps": state.step,
         "model": _model(),
+        "usage": usage,
     }
