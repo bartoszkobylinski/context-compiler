@@ -39,10 +39,16 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
             except (binascii.Error, UnicodeDecodeError):
                 given = ""
             given_user, _, given_password = given.partition(":")
+            # Compared as bytes: compare_digest rejects str with non-ASCII
+            # characters, and the challenge below advertises charset="UTF-8",
+            # so non-ASCII credentials are a shape we invite and must answer
+            # with 401 rather than an unhandled TypeError.
             # Both halves are always compared, so a wrong user costs the same as
             # a wrong password.
-            ok_user = secrets.compare_digest(given_user, user)
-            ok_password = secrets.compare_digest(given_password, password)
+            ok_user = secrets.compare_digest(given_user.encode("utf-8"), user.encode("utf-8"))
+            ok_password = secrets.compare_digest(
+                given_password.encode("utf-8"), password.encode("utf-8")
+            )
             if ok_user and ok_password:
                 return await call_next(request)
 
