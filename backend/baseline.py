@@ -73,7 +73,10 @@ def answer_baseline(
 
     response = client.messages.create(
         model=model,
-        max_tokens=600,
+        # Keep the control one-shot, but do not artificially truncate its answer.
+        # 600 tokens was too small for operational cases and could make the baseline
+        # look worse simply because generation stopped mid-sentence.
+        max_tokens=2400,
         system=(
             "Answer the user's operational question as well as you can using only the retrieved chunks below. "
             "Be concise and cite document ids. You do not have access to hidden metadata, tools, or additional retrieval. "
@@ -98,5 +101,6 @@ def answer_baseline(
         "model": model,
         "mode": "one-shot-top-k-chunks",
         "usage": _usage(response),
+        "stop_reason": getattr(response, "stop_reason", None),
         "limitations": ["no version graph", "no temporal validity tool", "no authority graph", "no second retrieval pass"],
     }
