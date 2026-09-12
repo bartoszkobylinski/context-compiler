@@ -75,9 +75,10 @@ def answer_baseline(
         model=model,
         max_tokens=600,
         system=(
-            "Answer using only the retrieved chunks below. Be concise and cite document ids. "
-            "You do not have access to any hidden metadata or additional retrieval. "
-            "If the retrieved chunks appear sufficient, answer directly; otherwise say UNKNOWN."
+            "Answer the user's operational question as well as you can using only the retrieved chunks below. "
+            "Be concise and cite document ids. You do not have access to hidden metadata, tools, or additional retrieval. "
+            "Make the best supported determination from the supplied chunks and explicitly state any important limitation or uncertainty. "
+            "Do not ask for another retrieval pass."
         ),
         messages=[
             {
