@@ -124,7 +124,7 @@
     steps = [];
     renderSteps();
     resultNode.className = 'shipping-result';
-    resultAnswer.textContent = '';
+    resultAnswer.innerHTML = '';
     resultFoot.textContent = '';
   }
 
@@ -166,6 +166,47 @@
     eventsNode.innerHTML = steps.slice(-9).map(step => `
       <div class="shipping-event"><div class="shipping-event-mark">${esc(step.mark)}</div><div><b>${esc(step.text)}</b></div></div>`
     ).join('');
+  }
+
+  function splitDecisionAndPlan(answer = '') {
+    const text = String(answer).trim();
+    if (!text) return { decision: '', plan: '' };
+
+    const markers = [
+      /\bThe compliant alternative is\b/i,
+      /\bCompliant alternative:\s*/i,
+      /\bA compliant alternative is\b/i,
+      /\bRecommended plan:\s*/i,
+      /\bAlternative plan:\s*/i,
+      /\bInstead,\s*/i,
+    ];
+
+    let best = null;
+    for (const marker of markers) {
+      const match = marker.exec(text);
+      if (match && (!best || match.index < best.index)) best = { index: match.index, length: match[0].length };
+    }
+    if (!best) return { decision: text, plan: '' };
+
+    const decision = text.slice(0, best.index).trim();
+    const rawPlan = text.slice(best.index).trim();
+    const plan = rawPlan.replace(/^(The compliant alternative is|Compliant alternative:|A compliant alternative is|Recommended plan:|Alternative plan:|Instead,)\s*/i, '').trim();
+    return { decision, plan };
+  }
+
+  function renderOperationalResult(answer, supported) {
+    if (!supported) {
+      resultAnswer.innerHTML = `<div class="shipping-decision-block"><div class="shipping-result-kicker">DECISION</div><div>${esc(answer || 'No verified operational decision available.')}</div></div>`;
+      return;
+    }
+
+    const { decision, plan } = splitDecisionAndPlan(answer);
+    resultAnswer.innerHTML = `
+      <div class="shipping-decision-block">
+        <div class="shipping-result-kicker">VERIFIED DECISION</div>
+        <div>${esc(decision || answer)}</div>
+      </div>
+      ${plan ? `<div class="shipping-plan-block"><div class="shipping-result-kicker">RECOMMENDED EXECUTION PLAN</div><div>${esc(plan)}</div></div>` : ''}`;
   }
 
   presets.addEventListener('click', event => {
@@ -218,7 +259,7 @@
     resultNode.querySelector('.shipping-result-title').textContent = supported
       ? 'REQUEST CHECKED → VERIFIED OPERATIONAL DECISION'
       : 'ACTION HELD';
-    resultAnswer.textContent = data.answer || 'No verified operational decision available.';
+    renderOperationalResult(data.answer || '', supported);
     const passed = (data.verification?.checks || []).filter(x => x.ok).length;
     const total = (data.verification?.checks || []).length;
     resultFoot.textContent = supported
