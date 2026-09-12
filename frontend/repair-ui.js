@@ -95,22 +95,25 @@
     if (!host) return;
 
     const attempts = repairStory(data.events || []);
-    if (!attempts.length) {
+    const hadRepair = attempts.some(attempt => attempt.gap);
+
+    // This panel tells a self-repair story. If the first draft passes there was no
+    // repair loop, so showing a purple "self-repair" card is misleading noise.
+    if (!attempts.length || !hadRepair) {
       host.innerHTML = "";
       host.classList.remove("visible");
       return;
     }
 
-    const hadRepair = attempts.some(attempt => attempt.gap);
     const finalReleased = data.status === "SUPPORTED";
 
     host.innerHTML = `
       <div class="repair-head">
         <div>
           <div class="repair-kicker">AGENT SELF-REPAIR LOOP</div>
-          <div class="repair-title">Verifier blocks. Agent repairs. Only verified answers ship.</div>
+          <div class="repair-title">Verifier blocked a draft. The agent gathered missing evidence and tried again.</div>
         </div>
-        <div class="repair-summary ${hadRepair ? "repair-summary-active" : ""}">${hadRepair ? `${attempts.filter(a => a.gap).length} draft blocked` : "first draft passed"}</div>
+        <div class="repair-summary repair-summary-active">${attempts.filter(a => a.gap).length} draft blocked</div>
       </div>
       <div class="repair-flow">
         ${attempts.map((attempt, idx) => {
@@ -140,10 +143,17 @@
             ${idx < attempts.length - 1 ? `<div class="repair-arrow">↻</div>` : ""}`;
         }).join("")}
       </div>
-      ${hadRepair && finalReleased ? `<div class="repair-footer"><strong>Closed loop:</strong> external verifier rejected a draft, the agent changed its next actions, and a later draft passed.</div>` : ""}
+      ${finalReleased ? `<div class="repair-footer"><strong>Closed loop:</strong> the verifier rejected a draft, the agent changed its next actions, and a later draft passed.</div>` : ""}
     `;
     host.classList.add("visible");
   }
+
+  window.addEventListener("context-run-start", () => {
+    const host = document.getElementById("repairLoop");
+    if (!host) return;
+    host.innerHTML = "";
+    host.classList.remove("visible");
+  });
 
   window.addEventListener("context-compiler-result", event => render(event.detail || {}));
 })();
