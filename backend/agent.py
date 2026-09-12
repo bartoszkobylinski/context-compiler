@@ -308,7 +308,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         state.step = step + 1
         response = client.messages.create(
             model=_model(),
-            max_tokens=16000,
+            max_tokens=8000,
             system=SYSTEM_PROMPT,
             tools=TOOLS,
             messages=messages,
