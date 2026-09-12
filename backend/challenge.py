@@ -22,6 +22,8 @@ CHALLENGES = {
     },
 }
 
+PRIMARY_DEMO_DATE = date(2025, 6, 10)
+
 
 def make_challenge_candidate(
     corpus: dict[str, Document],
@@ -31,14 +33,20 @@ def make_challenge_candidate(
 ) -> dict[str, Any]:
     """Build a deliberately bad candidate for the primary temporal demo.
 
-    The point is adversarial evaluation, not another model call: each mutation targets
-    one deterministic verifier invariant so the failure is reproducible on stage.
+    Challenge mode is intentionally reproducible on stage. Each mutation isolates one
+    deterministic verifier invariant so the audience sees one clean failure mode at a
+    time instead of accidental combinations caused by the currently selected demo date.
     """
     if challenge_type not in CHALLENGES:
         raise ValueError(f"unknown challenge type: {challenge_type}")
 
     if "personal laptop" not in question.lower() or "customer data" not in question.lower():
         raise ValueError("challenge mode is currently scoped to the personal-device demo question")
+
+    # Adversarial challenge mode is pinned to the before-change point in time. This makes
+    # the three attacks deterministic and prevents quote/coverage challenges from also
+    # failing merely because the UI happens to be on the after-change preset.
+    challenge_date = PRIMARY_DEMO_DATE
 
     if challenge_type == "future_policy":
         candidate = {
@@ -63,6 +71,7 @@ def make_challenge_candidate(
                     "claim": "A personal device may be used only with the corporate tunnel and whole-disk encryption.",
                     "source_id": "security-policy-2024",
                     "section": "4.2 BYOD access to restricted client records",
+                    # Deliberately wrong by one phrase: the real source says corporate tunnel.
                     "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate VPN and whole-disk encryption.",
                 }
             ],
@@ -86,13 +95,15 @@ def make_challenge_candidate(
             "unresolved": [],
         }
 
-    verification = verify_answer(candidate, corpus, query_date)
+    verification = verify_answer(candidate, corpus, challenge_date)
     return {
         "type": challenge_type,
         **CHALLENGES[challenge_type],
         "candidate": candidate,
         "verification": verification,
         "blocked": not verification["complete"],
+        "challenge_date": challenge_date.isoformat(),
+        "requested_date": query_date.isoformat() if query_date else None,
     }
 
 
@@ -100,16 +111,20 @@ def reason_codes(verification: dict[str, Any]) -> list[str]:
     codes: list[str] = []
     for reason in verification.get("missing", []):
         value = reason.lower()
+        # A single verifier message can contain more than one invariant failure; surface
+        # every matching code instead of masking later errors with an elif chain.
+        matches: list[str] = []
         if "not valid at" in value:
-            code = "TEMPORAL_INVALID"
-        elif "not verbatim" in value or "quote" in value:
-            code = "QUOTE_MISMATCH"
-        elif "not covered by a declared claim" in value:
-            code = "ANSWER_COVERAGE"
-        elif "unknown source" in value:
-            code = "SOURCE_MISSING"
-        else:
-            code = "EVIDENCE_INCOMPLETE"
-        if code not in codes:
-            codes.append(code)
+            matches.append("TEMPORAL_INVALID")
+        if "not verbatim" in value or "quote" in value:
+            matches.append("QUOTE_MISMATCH")
+        if "not covered by a declared claim" in value:
+            matches.append("ANSWER_COVERAGE")
+        if "unknown source" in value:
+            matches.append("SOURCE_MISSING")
+        if not matches:
+            matches.append("EVIDENCE_INCOMPLETE")
+        for code in matches:
+            if code not in codes:
+                codes.append(code)
     return codes
