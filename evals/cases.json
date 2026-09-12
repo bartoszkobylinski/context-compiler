@@ -1,0 +1,26 @@
+[
+  {
+    "id": "personal_device_june",
+    "question": "Can a contractor access customer data from a personal laptop using VPN?",
+    "query_date": "2025-06-10",
+    "expected": "YES"
+  },
+  {
+    "id": "personal_device_august",
+    "question": "Can a contractor access customer data from a personal laptop using VPN?",
+    "query_date": "2025-08-10",
+    "expected": "NO"
+  },
+  {
+    "id": "spouse_breakfast",
+    "question": "Can a contractor expense their spouse's breakfast?",
+    "query_date": "2025-08-10",
+    "expected": "UNKNOWN"
+  },
+  {
+    "id": "external_ai_customer_data",
+    "question": "Can an employee paste customer data into an external AI assistant?",
+    "query_date": "2025-08-10",
+    "expected": "NO_UNLESS_APPROVED"
+  }
+]
