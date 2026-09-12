@@ -40,11 +40,20 @@ Rules:
 10. Every material factual sentence in the user-facing answer must be represented by
     one of the claims. Do not add background, predictions, typical behavior, or other
     prose that is not explicitly covered by a cited claim.
+11. For operational requests, separate the result into two user-facing parts:
+    - decision: a short verdict about the requested action and the decisive reasons.
+    - recommendation: a concrete alternative execution plan, if one is supported.
+      If only part of the alternative can be established, state the supported steps and
+      explicitly identify the remaining unknown dependency (for example future weather).
+    Do not bury the recommendation inside the decision paragraph.
+12. Keep decision concise. Put procedural next steps in recommendation, not decision.
 
 When you are ready to stop using tools, respond ONLY with JSON in this exact shape:
 {
   "status": "SUPPORTED" | "UNKNOWN" | "CONFLICT",
-  "answer": "concise user-facing answer",
+  "decision": "short verdict on the requested action",
+  "recommendation": "supported alternative plan, or empty string when none can be established",
+  "answer": "decision and recommendation combined into complete user-facing prose for deterministic coverage verification",
   "claims": [
     {
       "claim": "material factual claim",
@@ -56,6 +65,12 @@ When you are ready to stop using tools, respond ONLY with JSON in this exact sha
   "unresolved": ["anything still not established"]
 }
 
+For SUPPORTED operational decisions, always populate decision. Populate recommendation whenever
+the requested action cannot execute but the corpus supports an alternative, partial alternative,
+or explicit next steps. If the exact next execution date depends on unavailable future evidence,
+recommend the supported future conditions and put the unavailable dependency in unresolved.
+The answer field must contain the same material facts expressed in decision and recommendation so
+the deterministic verifier can check answer coverage.
 If status is UNKNOWN, claims may be empty and unresolved must explain what evidence is missing.
 """
 
@@ -225,8 +240,6 @@ def _json_from_text(text: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         pass
 
-    # The model sometimes narrates before the object ("Now I'll finalize...").
-    # Take the first complete JSON object embedded in the text instead.
     decoder = json.JSONDecoder()
     for index, char in enumerate(text):
         if char != "{":
@@ -283,25 +296,11 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                 if not requirements_declared and tool_use.name != "declare_requirements":
                     error = "declare_requirements must be the first tool call"
                     state.events.append(ToolEvent("TOOL_ERROR", error))
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "is_error": True,
-                            "content": error,
-                        }
-                    )
+                    tool_results.append({"type": "tool_result", "tool_use_id": tool_use.id, "is_error": True, "content": error})
                     continue
                 if requirements_declared and tool_use.name == "declare_requirements":
                     error = "evidence requirements have already been declared"
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "is_error": True,
-                            "content": error,
-                        }
-                    )
+                    tool_results.append({"type": "tool_result", "tool_use_id": tool_use.id, "is_error": True, "content": error})
                     continue
 
                 try:
@@ -311,38 +310,13 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                         state.unresolved = list(tool_use.input.get("requirements", []))
 
                     event_type = _event_type(tool_use.name, result)
-                    state.events.append(
-                        ToolEvent(
-                            event_type,
-                            _event_message(tool_use.name, tool_use.input, result),
-                            {"tool": tool_use.name, "input": tool_use.input, "result": result},
-                        )
-                    )
+                    state.events.append(ToolEvent(event_type, _event_message(tool_use.name, tool_use.input, result), {"tool": tool_use.name, "input": tool_use.input, "result": result}))
                     if tool_use.name == "valid_at" and isinstance(result, dict) and not result.get("valid"):
-                        state.events.append(
-                            ToolEvent(
-                                "OUTDATED_SOURCE",
-                                f"Rejected {tool_use.input.get('document_id')} for this point in time",
-                                {"reason": result.get("reason")},
-                            )
-                        )
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": json.dumps(result, ensure_ascii=False),
-                        }
-                    )
+                        state.events.append(ToolEvent("OUTDATED_SOURCE", f"Rejected {tool_use.input.get('document_id')} for this point in time", {"reason": result.get("reason")}))
+                    tool_results.append({"type": "tool_result", "tool_use_id": tool_use.id, "content": json.dumps(result, ensure_ascii=False)})
                 except Exception as exc:
                     state.events.append(ToolEvent("TOOL_ERROR", f"{tool_use.name} failed", {"error": str(exc)}))
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "is_error": True,
-                            "content": str(exc),
-                        }
-                    )
+                    tool_results.append({"type": "tool_result", "tool_use_id": tool_use.id, "is_error": True, "content": str(exc)})
             messages.append({"role": "user", "content": tool_results})
             continue
 
@@ -364,52 +338,31 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             messages.append({"role": "user", "content": "Return only the required JSON object. Continue gathering evidence if needed."})
             continue
 
+        if answer.get("status") == "SUPPORTED" and not str(answer.get("decision", "")).strip():
+            messages.append({"role": "assistant", "content": final_text})
+            messages.append({"role": "user", "content": "A SUPPORTED operational result must include a concise decision field. Add decision and, when an alternative is supported, recommendation. Keep answer as the combined verified prose."})
+            continue
+
         verification = verify_answer(answer, corpus, query_date)
-        state.events.append(
-            ToolEvent(
-                "VERIFYING",
-                f"Deterministically verifying {len(answer.get('claims', []))} material claims and answer coverage",
-                {
-                    "checks": verification["checks"],
-                    "coverage": verification.get("coverage", {}),
-                },
-            )
-        )
+        state.events.append(ToolEvent("VERIFYING", f"Deterministically verifying {len(answer.get('claims', []))} material claims and answer coverage", {"checks": verification["checks"], "coverage": verification.get("coverage", {})}))
 
         if not verification["complete"]:
-            state.events.append(
-                ToolEvent(
-                    "EVIDENCE_GAP",
-                    "Verifier rejected the proposed final answer",
-                    {"missing": verification["missing"]},
-                )
-            )
+            state.events.append(ToolEvent("EVIDENCE_GAP", "Verifier rejected the proposed final answer", {"missing": verification["missing"]}))
             messages.append({"role": "assistant", "content": final_text})
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "The deterministic verifier rejected this answer for these reasons:\n- "
-                        + "\n- ".join(verification["missing"])
-                        + "\nEvery material sentence in the answer must map to a declared claim. "
-                        "Use tools again to repair the evidence, remove unsupported prose, or return UNKNOWN if it cannot be repaired."
-                    ),
-                }
-            )
+            messages.append({
+                "role": "user",
+                "content": (
+                    "The deterministic verifier rejected this answer for these reasons:\n- "
+                    + "\n- ".join(verification["missing"])
+                    + "\nEvery material sentence in answer, decision and recommendation must be supported by the same declared claims. "
+                    "Use tools again to repair the evidence, remove unsupported prose, or return UNKNOWN if it cannot be repaired."
+                ),
+            })
             continue
 
         status = answer.get("status")
         if status == "SUPPORTED":
-            state.events.append(
-                ToolEvent(
-                    "SUPPORTED",
-                    f"{len(answer.get('claims', []))}/{len(answer.get('claims', []))} material claims passed deterministic verification",
-                    {
-                        "checks": verification["checks"],
-                        "coverage": verification.get("coverage", {}),
-                    },
-                )
-            )
+            state.events.append(ToolEvent("SUPPORTED", f"{len(answer.get('claims', []))}/{len(answer.get('claims', []))} material claims passed deterministic verification", {"checks": verification["checks"], "coverage": verification.get("coverage", {})}))
         elif status == "UNKNOWN":
             state.events.append(ToolEvent("UNKNOWN", "Approved corpus does not establish the answer"))
         else:
@@ -428,6 +381,8 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
     state.events.append(ToolEvent("UNKNOWN", "Maximum evidence-gathering steps reached"))
     return {
         "status": "UNKNOWN",
+        "decision": "UNKNOWN — insufficient verified evidence within the search budget.",
+        "recommendation": "",
         "answer": "UNKNOWN — insufficient verified evidence within the search budget.",
         "events": [e.__dict__ for e in state.events],
         "claims": [],
