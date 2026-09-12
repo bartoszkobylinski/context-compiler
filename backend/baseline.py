@@ -89,7 +89,9 @@ def answer_baseline(
     text = "\n".join(
         block.text for block in response.content if getattr(block, "type", None) == "text"
     ).strip()
-    _emit(event_sink, "ANSWER_READY", "One-shot answer returned", {"usage": _usage(response)})
+    # The model has returned here, but the UI should only label the run ANSWER_READY
+    # when the streamed result payload itself is received and rendered.
+    _emit(event_sink, "MODEL_RETURNED", "Model returned; releasing one-shot result", {"usage": _usage(response)})
     return {
         "answer": text,
         "hits": hits,
