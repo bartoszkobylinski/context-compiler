@@ -214,6 +214,20 @@ def retrieval_diagnostics(
 @app.get("/demo-cases")
 def demo_cases():
     return [
+        {
+            "label": "Ship Order #4821",
+            "mode": "shipping",
+            "question": "Can Order #4821 ship today as one parcel via PolarExpress Air Next-Day to Tromsø? If not, determine a compliant alternative shipping plan from the approved corpus.",
+            "query_date": "2026-09-12",
+            "expected": "Do not ship as one parcel; split the perfume and power bank into approved services and packaging.",
+            "action": "Ship Order #4821",
+            "order": {
+                "destination": "Tromsø, Norway",
+                "requested_service": "PolarExpress Air Next-Day",
+                "items": ["Fjord Mist perfume · 100 ml", "PB20 power bank · 20,000 mAh"],
+                "requested_plan": "One parcel · ship today",
+            },
+        },
         {"label": "Before policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-06-10", "expected": "YES, but only with VPN and full-disk encryption"},
         {"label": "After policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-08-10", "expected": "NO, company-managed device required"},
         {"label": "Multi-hop AI policy", "question": "Can an employee paste customer data into an external AI assistant?", "query_date": "2025-08-10", "expected": "NO unless that AI provider is explicitly approved for Confidential data"},
