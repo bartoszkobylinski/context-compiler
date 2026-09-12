@@ -1,4 +1,4 @@
-const API = window.CONTEXT_COMPILER_API || "http://localhost:8000";
+const API = window.CONTEXT_COMPILER_API || "http://localhost:4865";
 
 const el = (id) => document.getElementById(id);
 const question = el("question");
