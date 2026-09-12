@@ -23,8 +23,6 @@ def _terms(text: str) -> set[str]:
     for token in tokens:
         if token in _STOPWORDS or len(token) <= 2:
             continue
-        # Tiny stemmer: enough to align requires/required and connections/connection
-        # without introducing an NLP dependency into the verifier.
         for suffix in ("ing", "ed", "es", "s"):
             if token.endswith(suffix) and len(token) - len(suffix) >= 4:
                 token = token[: -len(suffix)]
@@ -35,18 +33,11 @@ def _terms(text: str) -> set[str]:
 
 def _material_sentences(text: str) -> list[str]:
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text.strip()) if part.strip()]
-    # Very short answer fragments such as "No." are conclusions rather than standalone
-    # factual assertions and are allowed to ride on the claims that follow.
     return [sentence for sentence in sentences if len(_terms(sentence)) >= 3]
 
 
 def _answer_coverage(answer_text: str, claims: list[dict[str, Any]]) -> dict[str, Any]:
-    """Require every material answer sentence to be traceable to a declared claim.
-
-    This closes the gap where a model can provide verified claims but smuggle an extra,
-    unsupported factual sentence into the user-facing prose. Coverage is intentionally
-    deterministic and lexical; it does not pretend to prove semantic equivalence.
-    """
+    """Require every material answer sentence to be traceable to a declared claim."""
     claim_terms = [_terms(str(claim.get("claim", ""))) for claim in claims]
     checks: list[dict[str, Any]] = []
     uncovered: list[str] = []
@@ -79,41 +70,129 @@ def _answer_coverage(answer_text: str, claims: list[dict[str, Any]]) -> dict[str
     return {"complete": not uncovered, "checks": checks, "uncovered": uncovered}
 
 
+def _requirement_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("requirement") or value.get("text") or value.get("id") or "").strip()
+    return str(value or "").strip()
+
+
+def _verify_requirement_closure(
+    answer: dict[str, Any],
+    declared_requirements: list[Any] | None,
+    claim_checks: list[dict[str, Any]],
+    require_all: bool,
+) -> dict[str, Any]:
+    """Deterministically check that every declared requirement is explicitly closed.
+
+    The model may decide *how* to gather evidence, but it cannot release a SUPPORTED
+    result unless each declared requirement is mapped to one or more already-verified
+    material claims. More retrieval is not itself evidence of sufficiency; closure is.
+    """
+    declared = [_requirement_text(x) for x in (declared_requirements or [])]
+    declared = [x for x in declared if x]
+    rows = answer.get("requirement_closure", [])
+    if not isinstance(rows, list):
+        rows = []
+
+    by_requirement: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        requirement = _requirement_text(row.get("requirement"))
+        if requirement and requirement not in by_requirement:
+            by_requirement[requirement] = row
+
+    checks: list[dict[str, Any]] = []
+    missing: list[str] = []
+    resolved = 0
+
+    for requirement in declared:
+        row = by_requirement.get(requirement)
+        errors: list[str] = []
+        status = str((row or {}).get("status", "MISSING")).upper()
+        claim_indices = (row or {}).get("claim_indices", [])
+        if not isinstance(claim_indices, list):
+            claim_indices = []
+
+        if row is None:
+            errors.append("no closure entry")
+        elif require_all and status != "RESOLVED":
+            errors.append(f"status is {status}, expected RESOLVED")
+        elif status == "RESOLVED":
+            if not claim_indices:
+                errors.append("resolved requirement has no supporting claim indices")
+            for claim_index in claim_indices:
+                if not isinstance(claim_index, int) or claim_index < 1 or claim_index > len(claim_checks):
+                    errors.append(f"invalid claim index {claim_index!r}")
+                    continue
+                if not claim_checks[claim_index - 1].get("ok"):
+                    errors.append(f"claim {claim_index} did not pass verification")
+
+        ok = not errors and status == "RESOLVED"
+        if ok:
+            resolved += 1
+        if errors and require_all:
+            missing.append(f"requirement not closed: {requirement} ({'; '.join(errors)})")
+
+        checks.append(
+            {
+                "requirement": requirement,
+                "status": status,
+                "claim_indices": claim_indices,
+                "ok": ok,
+                "errors": errors,
+            }
+        )
+
+    complete = (resolved == len(declared)) if require_all else True
+    return {
+        "complete": complete,
+        "resolved": resolved,
+        "total": len(declared),
+        "checks": checks,
+        "missing": missing,
+    }
+
+
 def verify_answer(
     answer: dict[str, Any],
     corpus: dict[str, Document],
     query_date: date | None,
+    declared_requirements: list[Any] | None = None,
 ) -> dict[str, Any]:
     """Deterministically verify the evidence contract of a final answer.
 
-    A SUPPORTED answer is accepted only when every material claim:
-    - cites an existing approved document,
-    - includes a short verbatim supporting quote,
-    - when a query date is supplied, cites a source valid at that date,
-    - and every material sentence in the user-facing answer is covered by one of the
-      declared claims.
-
-    This is intentionally stricter than asking the model whether it is grounded.
+    SUPPORTED release requires both claim-level grounding and requirement closure:
+    - every material claim cites an existing approved document,
+    - every claim includes an exact supporting quote,
+    - every cited source is valid at the query date when one is supplied,
+    - every material sentence is covered by a declared claim,
+    - every evidence requirement declared before retrieval is explicitly RESOLVED and
+      mapped to one or more verified claims.
     """
     status = answer.get("status")
     claims = answer.get("claims", [])
 
     if status == "UNKNOWN":
         unresolved = answer.get("unresolved", [])
+        closure = _verify_requirement_closure(answer, declared_requirements, [], require_all=False)
         return {
             "complete": bool(unresolved),
             "missing": [] if unresolved else ["UNKNOWN requires an explicit evidence gap"],
             "checks": [],
             "coverage": {"complete": True, "checks": [], "uncovered": []},
+            "requirement_closure": closure,
         }
 
     if status == "CONFLICT":
         unresolved = answer.get("unresolved", [])
+        closure = _verify_requirement_closure(answer, declared_requirements, [], require_all=False)
         return {
             "complete": bool(unresolved),
             "missing": [] if unresolved else ["CONFLICT requires an explicit unresolved conflict"],
             "checks": [],
             "coverage": {"complete": True, "checks": [], "uncovered": []},
+            "requirement_closure": closure,
         }
 
     if status != "SUPPORTED":
@@ -122,6 +201,7 @@ def verify_answer(
             "missing": [f"unsupported final status: {status!r}"],
             "checks": [],
             "coverage": {"complete": False, "checks": [], "uncovered": []},
+            "requirement_closure": {"complete": False, "resolved": 0, "total": len(declared_requirements or []), "checks": [], "missing": []},
         }
 
     if not claims:
@@ -130,6 +210,7 @@ def verify_answer(
             "missing": ["no material claims supplied"],
             "checks": [],
             "coverage": {"complete": False, "checks": [], "uncovered": []},
+            "requirement_closure": {"complete": False, "resolved": 0, "total": len(declared_requirements or []), "checks": [], "missing": []},
         }
 
     missing: list[str] = []
@@ -173,9 +254,13 @@ def verify_answer(
     for sentence in coverage["uncovered"]:
         missing.append(f"answer contains material text not covered by a declared claim: {sentence}")
 
+    closure = _verify_requirement_closure(answer, declared_requirements, checks, require_all=True)
+    missing.extend(closure["missing"])
+
     return {
         "complete": not missing,
         "missing": missing,
         "checks": checks,
         "coverage": coverage,
+        "requirement_closure": closure,
     }
