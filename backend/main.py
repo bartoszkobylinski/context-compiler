@@ -12,7 +12,8 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .tools import load_corpus
@@ -28,7 +29,7 @@ CORPUS = load_corpus(ROOT / "corpus")
 app = FastAPI(title="Context Compiler", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://hackanton.bartoszkobylinski.com", "http://localhost:3000"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -241,3 +242,28 @@ def demo_cases():
             "expected": "High-value signature and supervisor rules conflict with leave-at-door, and the remote address has no staffed Sunday delivery.",
         },
     ]
+
+
+FRONTEND = ROOT / "frontend"
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> HTMLResponse:
+    """Serve the UI with its API base pointed at whatever origin served it.
+
+    frontend/app.js falls back to http://localhost:4865, which is wrong as soon as
+    the page is served from a domain, and an empty string is falsy there — so the
+    origin is injected instead of defaulted.
+    """
+    html = (FRONTEND / "index.html").read_text(encoding="utf-8")
+    return HTMLResponse(
+        html.replace(
+            "<head>",
+            "<head><script>window.CONTEXT_COMPILER_API=location.origin;</script>",
+            1,
+        )
+    )
+
+
+# Catch-all: must stay below every API route.
+app.mount("/", StaticFiles(directory=FRONTEND), name="frontend")
