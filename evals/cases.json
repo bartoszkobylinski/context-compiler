@@ -1,26 +1,46 @@
 [
   {
     "id": "personal_device_june",
+    "label": "Temporal flip — before policy takes effect",
     "question": "Can a contractor access customer data from a personal laptop using VPN?",
     "query_date": "2025-06-10",
-    "expected": "YES"
+    "expected": "YES_WITH_CONTROLS",
+    "expected_status": "SUPPORTED",
+    "answer_all": ["vpn", "encryption"],
+    "answer_any": ["yes", "may", "allowed"],
+    "required_sources": ["security-policy-2024"]
   },
   {
     "id": "personal_device_august",
+    "label": "Temporal flip — after policy takes effect",
     "question": "Can a contractor access customer data from a personal laptop using VPN?",
     "query_date": "2025-08-10",
-    "expected": "NO"
+    "expected": "NO_MANAGED_DEVICE_REQUIRED",
+    "expected_status": "SUPPORTED",
+    "answer_all": ["managed"],
+    "answer_any": ["no", "not allowed", "may only"],
+    "required_sources": ["security-policy-2025"]
   },
   {
     "id": "spouse_breakfast",
+    "label": "Knowledge boundary — abstain",
     "question": "Can a contractor expense their spouse's breakfast?",
     "query_date": "2025-08-10",
-    "expected": "UNKNOWN"
+    "expected": "UNKNOWN",
+    "expected_status": "UNKNOWN",
+    "answer_all": ["unknown"],
+    "answer_any": [],
+    "required_sources": []
   },
   {
     "id": "external_ai_customer_data",
+    "label": "Multi-hop — classification to AI control",
     "question": "Can an employee paste customer data into an external AI assistant?",
     "query_date": "2025-08-10",
-    "expected": "NO_UNLESS_APPROVED"
+    "expected": "NO_UNLESS_APPROVED",
+    "expected_status": "SUPPORTED",
+    "answer_all": ["approved"],
+    "answer_any": ["no", "must not", "unless"],
+    "required_sources": ["data-classification-policy", "ai-security-addendum"]
   }
 ]
