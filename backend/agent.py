@@ -301,11 +301,14 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         }
     ]
 
+    empty_turns = 0
+    halt_reason = "maximum evidence-gathering steps reached"
+
     for step in range(state.max_steps):
         state.step = step + 1
         response = client.messages.create(
             model=_model(),
-            max_tokens=8000,
+            max_tokens=16000,
             system=SYSTEM_PROMPT,
             tools=TOOLS,
             messages=messages,
@@ -355,8 +358,39 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             continue
 
         if not text_blocks:
-            state.events.append(ToolEvent("EVIDENCE_GAP", "Model stopped without an answer"))
-            break
+            # A step can end with neither text nor a tool call — typically the
+            # answer was truncated while thinking. Aborting the whole run here
+            # threw away a budget that was nowhere near spent, so nudge instead
+            # and only give up if the model keeps producing nothing.
+            stop_reason = getattr(response, "stop_reason", None)
+            empty_turns += 1
+            state.events.append(
+                ToolEvent(
+                    "EVIDENCE_GAP",
+                    "Step produced no answer — asking the agent to continue",
+                    {"stop_reason": stop_reason, "empty_turns": empty_turns},
+                )
+            )
+            if empty_turns >= 3:
+                halt_reason = "the agent produced no answer three steps in a row"
+                break
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": response.content if response.content else "(no output)",
+                }
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "That step returned nothing. Call a tool if you still need evidence. "
+                        "Otherwise return only the required JSON object and keep each claim's "
+                        "prose short, so the whole object fits in one response."
+                    ),
+                }
+            )
+            continue
 
         final_text = "\n".join(text_blocks)
         try:
@@ -435,7 +469,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             "usage": usage,
         }
 
-    state.events.append(ToolEvent("UNKNOWN", "Maximum evidence-gathering steps reached"))
+    state.events.append(ToolEvent("UNKNOWN", halt_reason[:1].upper() + halt_reason[1:]))
     return {
         "status": "UNKNOWN",
         "decision": "UNKNOWN — insufficient verified evidence within the search budget.",
@@ -445,7 +479,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         "claims": [],
         "requirement_closure": [],
         "plan_candidates": [],
-        "unresolved": ["max evidence-gathering steps reached"],
+        "unresolved": [halt_reason],
         "verification": {
             "complete": True,
             "missing": [],
