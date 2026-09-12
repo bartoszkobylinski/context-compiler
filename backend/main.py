@@ -1,18 +1,28 @@
 from __future__ import annotations
 
+import os
 from datetime import date
 from pathlib import Path
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .tools import load_corpus
-from .baseline import retrieve_baseline
-from .agent import run_demo_compiler
+from .baseline import answer_baseline
+from .agent import run_compiler
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = load_corpus(ROOT / "corpus")
 
-app = FastAPI(title="Context Compiler")
+app = FastAPI(title="Context Compiler", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class AskRequest(BaseModel):
@@ -22,18 +32,53 @@ class AskRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "documents": len(CORPUS)}
+    return {
+        "ok": True,
+        "documents": len(CORPUS),
+        "anthropic_key": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5"),
+    }
 
 
 @app.post("/baseline")
 def baseline(req: AskRequest):
-    return {
-        "question": req.question,
-        "hits": retrieve_baseline(CORPUS, req.question, top_k=3),
-        "note": "Wire Anthropic answer generation here during the hackathon.",
-    }
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+    try:
+        return answer_baseline(CORPUS, req.question, req.query_date, top_k=3)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Baseline failed: {exc}") from exc
 
 
 @app.post("/compiler")
 def compiler(req: AskRequest):
-    return run_demo_compiler(CORPUS, req.question, req.query_date)
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+    try:
+        return run_compiler(CORPUS, req.question, req.query_date)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Compiler failed: {exc}") from exc
+
+
+@app.get("/demo-cases")
+def demo_cases():
+    return [
+        {
+            "label": "Before policy change",
+            "question": "Can a contractor access customer data from a personal laptop using VPN?",
+            "query_date": "2025-06-10",
+            "expected": "YES, with VPN and full-disk encryption",
+        },
+        {
+            "label": "After policy change",
+            "question": "Can a contractor access customer data from a personal laptop using VPN?",
+            "query_date": "2025-08-10",
+            "expected": "NO, company-managed device required",
+        },
+        {
+            "label": "Knowledge boundary",
+            "question": "Can a contractor expense their spouse's breakfast?",
+            "query_date": "2025-08-10",
+            "expected": "UNKNOWN",
+        },
+    ]
