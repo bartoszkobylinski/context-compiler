@@ -73,21 +73,21 @@
     <section class="verdict-strip" id="verdictStrip">
       <div class="verdict-label">BUSINESS DECISION</div>
       <div class="verdict-main" id="verdictMain">Can this exact order ship as requested — and if not, what verified plan can execute instead?</div>
-      <div class="verdict-meta" id="verdictMeta">Same corpus, two decision processes: one-shot retrieval versus evidence-contract closure.</div>
+      <div class="verdict-meta" id="verdictMeta">Same corpus: two-pass retrieval control versus evidence-contract closure.</div>
     </section>
 
     <section class="comparison">
       <article class="panel baseline-panel">
         <div class="panel-head">
           <div>
-            <div class="panel-kicker">CONTROL</div>
-            <h2>One-shot RAG</h2>
+            <div class="panel-kicker">STRONGER CONTROL</div>
+            <h2>Two-pass RAG</h2>
           </div>
-          <div class="badge neutral" id="baselineBadge">ONE-SHOT</div>
+          <div class="badge neutral" id="baselineBadge">2-PASS</div>
         </div>
-        <div class="flow-mini">order question → top-k chunks → answer</div>
+        <div class="flow-mini">question → top-k → identify gap → top-k again → answer</div>
         <div class="answer-box" id="baselineAnswer">
-          <div class="empty">Run the order to see what one-shot retrieval proposes.</div>
+          <div class="empty">Run the order to see what a stronger two-pass retrieval control proposes.</div>
         </div>
         <div class="run-metrics" id="baselineMetrics"></div>
         <div class="sources" id="baselineSources"></div>
@@ -115,7 +115,7 @@
     </section>
 
     <section class="footer-note">
-      <strong>Business claim:</strong> retrieval can find more documents; the release gate answers a different question: has every required condition for this operational decision been established by verified evidence? Each verified release also produces a receipt that can become a high-quality supervision record for future retrieval, routing and requirement generation.
+      <strong>Business claim:</strong> even a second retrieval pass can find more relevant documents; the release gate answers a different question: has every required condition for this operational decision been established by verified evidence? Each verified release also produces a receipt that can become a high-quality supervision record for future retrieval, routing and requirement generation.
     </section>
   </main>
   <script src="./repair-ui.js"></script>
