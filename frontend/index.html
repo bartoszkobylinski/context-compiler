@@ -6,6 +6,7 @@
   <title>Context Compiler</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./repair-ui.css" />
+  <link rel="stylesheet" href="./challenge-ui.css" />
 </head>
 <body>
   <main class="shell">
@@ -44,6 +45,22 @@
         <button id="runBtn" class="run-btn">Run comparison</button>
       </div>
       <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="challenge-card">
+      <div class="challenge-head">
+        <div>
+          <div class="challenge-kicker">BREAK THE HAPPY PATH</div>
+          <div class="challenge-title">Attack the candidate answer. The verifier must catch it.</div>
+        </div>
+        <div class="challenge-note">Live adversarial test</div>
+      </div>
+      <div class="challenge-buttons">
+        <button class="challenge-btn" data-challenge="future_policy">Use future policy</button>
+        <button class="challenge-btn" data-challenge="corrupt_quote">Corrupt supporting quote</button>
+        <button class="challenge-btn" data-challenge="unsupported_claim">Inject unsupported claim</button>
+      </div>
+      <div class="challenge-result" id="challengeResult"></div>
     </section>
 
     <section class="verdict-strip" id="verdictStrip">
@@ -95,5 +112,6 @@
   </main>
   <script src="./repair-ui.js"></script>
   <script src="./app.js"></script>
+  <script src="./challenge-ui.js"></script>
 </body>
 </html>
