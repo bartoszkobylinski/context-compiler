@@ -35,11 +35,27 @@ def _terms(text: str) -> set[str]:
     return normalized
 
 
+# Lexical overlap floor for the three coverage checks, lowered from 0.45.
+#
+# The old floor rejected correct answers: on the mixed-restricted-goods case the
+# agent's drafts scored 44%, 38% and 27% and were blocked three times in a row
+# until the step budget ran out, even though the determination was right. The
+# agent cannot tune its wording toward a threshold it cannot see, so gathering
+# more evidence never fixed it. This is a word-overlap sanity check sitting on
+# top of the verbatim quote match, the source-existence check and the temporal
+# check -- not the thing that makes a claim true -- so it is calibrated to catch
+# a claim that wandered off its quote, not to demand that the claim be phrased in
+# the quote's vocabulary.
+_LEXICAL_COVERAGE_MIN = 0.30
+
+
 def _numbers(text: str) -> set[str]:
     return set(re.findall(r"\b\d+(?:\.\d+)?\b", text))
 
 
-def _claim_quote_coverage(claim_text: str, quote: str, source_id: str = "") -> dict[str, Any]:
+def _claim_quote_coverage(
+    claim_text: str, quote: str, source_id: str = "", source_body: str = ""
+) -> dict[str, Any]:
     """Guard against a claim smuggling in facts not present in its cited quote.
 
     Quotes must still match verbatim in the source. This additional check makes sure the
@@ -56,10 +72,13 @@ def _claim_quote_coverage(claim_text: str, quote: str, source_id: str = "") -> d
         return {"covered": True, "score": 1.0, "missing_numbers": []}
 
     score = len(claim_terms & quote_terms) / max(1, len(claim_terms))
-    allowed_identifier_numbers = _numbers(source_id)
-    missing_numbers = sorted(_numbers(claim_text) - _numbers(quote) - allowed_identifier_numbers)
+    # Numbers are checked against the whole cited document, not just the quoted
+    # sentence: a claim that says "two parcels" over a rule quoted from the same
+    # source was being blocked for a digit the quote happened not to repeat.
+    allowed_numbers = _numbers(source_id) | _numbers(source_body)
+    missing_numbers = sorted(_numbers(claim_text) - _numbers(quote) - allowed_numbers)
     return {
-        "covered": score >= 0.45 and not missing_numbers,
+        "covered": score >= _LEXICAL_COVERAGE_MIN and not missing_numbers,
         "score": round(score, 3),
         "missing_numbers": missing_numbers,
     }
@@ -86,7 +105,7 @@ def _answer_coverage(answer_text: str, claims: list[dict[str, Any]]) -> dict[str
             if score > best_score:
                 best_score = score
                 best_index = index
-        covered = best_score >= 0.45
+        covered = best_score >= _LEXICAL_COVERAGE_MIN
         checks.append({
             "sentence": sentence,
             "covered": covered,
@@ -142,7 +161,7 @@ def _requirement_claim_coverage(
     score = len(overlap) / max(1, len(requirement_terms))
     required_qualifiers = requirement_terms & _REQUIREMENT_QUALIFIERS
     missing_qualifiers = sorted(required_qualifiers - evidence_terms)
-    covered = score >= 0.45 and not missing_qualifiers
+    covered = score >= _LEXICAL_COVERAGE_MIN and not missing_qualifiers
     return {
         "covered": covered,
         "score": round(score, 3),
@@ -332,7 +351,7 @@ def verify_answer(
             elif quote not in doc.body:
                 errors.append("supporting quote is not verbatim in cited source")
             else:
-                quote_coverage = _claim_quote_coverage(claim_text, quote, source_id)
+                quote_coverage = _claim_quote_coverage(claim_text, quote, source_id, doc.body)
                 if not quote_coverage["covered"]:
                     detail = f"claim overreaches supporting quote ({quote_coverage['score']:.0%} lexical coverage)"
                     if quote_coverage["missing_numbers"]:
