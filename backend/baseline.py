@@ -12,26 +12,22 @@ def retrieve_baseline(corpus: dict[str, Document], question: str, top_k: int = 3
 
 
 def build_baseline_context(corpus: dict[str, Document], question: str, top_k: int = 3) -> tuple[str, list[dict]]:
+    """Build the control context exactly like a common chunk-RAG path.
+
+    The baseline gets the same underlying corpus text but not the structured temporal,
+    version, authority, or reference relations used by Context Compiler. That distinction
+    is the point of the experiment: similarity-selected text vs compiled evidence.
+    """
     hits = retrieve_baseline(corpus, question, top_k)
     blocks = []
     for hit in hits:
         doc = corpus[hit["id"]]
-        blocks.append(
-            f"# {doc.title} ({doc.id})\n"
-            f"published_at={doc.published_at}\n"
-            f"valid_from={doc.valid_from}\n"
-            f"valid_to={doc.valid_to}\n\n"
-            f"{doc.body}"
-        )
+        blocks.append(f"# {doc.title} ({doc.id})\n{doc.body}")
     return "\n\n---\n\n".join(blocks), hits
 
 
 def answer_baseline(corpus: dict[str, Document], question: str, query_date=None, top_k: int = 3) -> dict:
-    """Naive one-shot RAG baseline: top-k retrieval once, then answer once.
-
-    Intentionally no temporal resolution, no reference following, no iterative search.
-    This is the control condition for the demo, not a strawman hidden behind worse data.
-    """
+    """Naive one-shot RAG control: retrieve top-k text once, answer once."""
     context, hits = build_baseline_context(corpus, question, top_k)
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5")
@@ -42,13 +38,14 @@ def answer_baseline(corpus: dict[str, Document], question: str, query_date=None,
         max_tokens=600,
         temperature=0,
         system=(
-            "Answer the user's question using only the retrieved context. "
-            "Be concise and cite document ids in parentheses. If the context appears sufficient, answer directly."
+            "Answer using only the retrieved chunks below. Be concise and cite document ids. "
+            "You do not have access to any hidden metadata or additional retrieval. "
+            "If the retrieved chunks appear sufficient, answer directly; otherwise say UNKNOWN."
         ),
         messages=[
             {
                 "role": "user",
-                "content": f"Query date: {date_text}\nQuestion: {question}\n\nRetrieved context:\n{context}",
+                "content": f"Query date: {date_text}\nQuestion: {question}\n\nRetrieved chunks:\n{context}",
             }
         ],
     )
@@ -59,5 +56,6 @@ def answer_baseline(corpus: dict[str, Document], question: str, query_date=None,
         "answer": text,
         "hits": hits,
         "model": model,
-        "mode": "one-shot-top-k",
+        "mode": "one-shot-top-k-chunks",
+        "limitations": ["no version graph", "no temporal validity tool", "no authority graph", "no second retrieval pass"],
     }
