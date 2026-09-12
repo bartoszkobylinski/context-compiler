@@ -67,13 +67,19 @@ def demo_cases():
             "label": "Before policy change",
             "question": "Can a contractor access customer data from a personal laptop using VPN?",
             "query_date": "2025-06-10",
-            "expected": "YES, with VPN and full-disk encryption",
+            "expected": "YES, but only with VPN and full-disk encryption",
         },
         {
             "label": "After policy change",
             "question": "Can a contractor access customer data from a personal laptop using VPN?",
             "query_date": "2025-08-10",
             "expected": "NO, company-managed device required",
+        },
+        {
+            "label": "Multi-hop AI policy",
+            "question": "Can an employee paste customer data into an external AI assistant?",
+            "query_date": "2025-08-10",
+            "expected": "NO unless that AI provider is explicitly approved for Confidential data",
         },
         {
             "label": "Knowledge boundary",
