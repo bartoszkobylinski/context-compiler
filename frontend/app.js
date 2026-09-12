@@ -42,8 +42,8 @@ async function getJson(url, options = {}) {
   return res.json();
 }
 
-async function streamCompiler(payload) {
-  const res = await fetch(`${API}/compiler-stream`, {
+async function streamNdjson(url, payload, eventName) {
+  const res = await fetch(url, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload),
@@ -64,11 +64,11 @@ async function streamCompiler(payload) {
     if (!line.trim()) return;
     const item = JSON.parse(line);
     if (item.kind === "event" && item.event) {
-      window.dispatchEvent(new CustomEvent("context-compiler-live-event", { detail: item.event }));
+      window.dispatchEvent(new CustomEvent(eventName, { detail: item.event }));
     } else if (item.kind === "result") {
       finalResult = item.result;
     } else if (item.kind === "error") {
-      throw new Error(item.error || "Compiler stream failed");
+      throw new Error(item.error || "Stream failed");
     }
   };
 
@@ -81,9 +81,12 @@ async function streamCompiler(payload) {
     if (done) break;
   }
   if (buffer.trim()) handleLine(buffer);
-  if (!finalResult) throw new Error("Compiler stream ended without a final result");
+  if (!finalResult) throw new Error("Stream ended without a final result");
   return finalResult;
 }
+
+const streamCompiler = payload => streamNdjson(`${API}/compiler-stream`, payload, "context-compiler-live-event");
+const streamBaseline = payload => streamNdjson(`${API}/baseline-stream`, payload, "context-baseline-live-event");
 
 function fmtTokens(usage = {}) {
   const input = Number(usage.input_tokens || 0);
@@ -148,9 +151,7 @@ function renderEvents(events = []) {
     item.className = `event event-${String(event.type || "").toLowerCase()}`;
     item.style.opacity = "0";
     item.style.transform = "translateY(5px)";
-    item.innerHTML = `
-      <div class="event-type">${escapeHtml(event.type)}</div>
-      <div class="event-message">${escapeHtml(friendlyEvent(event))}</div>`;
+    item.innerHTML = `<div class="event-type">${escapeHtml(event.type)}</div><div class="event-message">${escapeHtml(friendlyEvent(event))}</div>`;
     timeline.appendChild(item);
     setTimeout(() => {
       item.style.transition = "opacity .18s ease, transform .18s ease";
@@ -168,23 +169,13 @@ function renderDecision(data) {
 
   if (rejected && accepted) {
     const rejectedId = events.find(e => e.type === "TEMPORAL_CHECK" && e.payload?.result?.valid === false)?.payload?.result?.document || "future version";
-    decisionCard.innerHTML = `
-      <div class="decision-title">TEMPORAL RESOLUTION</div>
-      <div class="decision-flow">
-        <span class="decision-reject">× ${escapeHtml(rejectedId)}</span>
-        <span class="decision-reason">not valid yet</span>
-        <span class="decision-arrow">→</span>
-        <span class="decision-accept">✓ ${escapeHtml(accepted.document)}</span>
-        <span class="decision-reason">valid on ${escapeHtml(accepted.date)}</span>
-      </div>`;
+    decisionCard.innerHTML = `<div class="decision-title">TEMPORAL RESOLUTION</div><div class="decision-flow"><span class="decision-reject">× ${escapeHtml(rejectedId)}</span><span class="decision-reason">not valid yet</span><span class="decision-arrow">→</span><span class="decision-accept">✓ ${escapeHtml(accepted.document)}</span><span class="decision-reason">valid on ${escapeHtml(accepted.date)}</span></div>`;
     decisionCard.classList.add("visible");
     return;
   }
 
   if (data.status === "UNKNOWN") {
-    decisionCard.innerHTML = `
-      <div class="decision-title">KNOWLEDGE BOUNDARY</div>
-      <div class="decision-flow"><span class="decision-reject">UNKNOWN</span><span class="decision-reason">no approved evidence → no claim released</span></div>`;
+    decisionCard.innerHTML = `<div class="decision-title">KNOWLEDGE BOUNDARY</div><div class="decision-flow"><span class="decision-reject">UNKNOWN</span><span class="decision-reason">no approved evidence → no claim released</span></div>`;
     decisionCard.classList.add("visible");
     return;
   }
@@ -196,37 +187,17 @@ function renderDecision(data) {
 function renderProof(data) {
   const checks = data?.verification?.checks || [];
   if (!checks.length) {
-    proof.innerHTML = data.status === "UNKNOWN"
-      ? `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>0 unsupported claims released</strong></div>`
-      : "";
+    proof.innerHTML = data.status === "UNKNOWN" ? `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>0 unsupported claims released</strong></div>` : "";
     return;
   }
 
   const passed = checks.filter(c => c.ok).length;
-  proof.innerHTML = `
-    <div class="proof-head">
-      <span>DETERMINISTIC VERIFIER</span>
-      <strong>${passed}/${checks.length} claims passed</strong>
-    </div>
-    <div class="proof-list">
-      ${checks.map(c => `
-        <div class="proof-item ${c.ok ? "proof-ok" : "proof-fail"}">
-          <div class="proof-mark">${c.ok ? "✓" : "×"}</div>
-          <div>
-            <div class="proof-claim">${escapeHtml(c.claim || "Claim")}</div>
-            <div class="proof-source">${escapeHtml(c.source_id || "no source")} ${c.valid_at_query_time === true ? "· valid at query time" : c.valid_at_query_time === false ? "· NOT valid at query time" : ""}</div>
-            ${c.quote ? `<div class="proof-quote">“${escapeHtml(c.quote)}”</div>` : ""}
-            ${(c.errors || []).length ? `<div class="proof-errors">${(c.errors || []).map(escapeHtml).join(" · ")}</div>` : ""}
-          </div>
-        </div>`).join("")}
-    </div>`;
+  proof.innerHTML = `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>${passed}/${checks.length} claims passed</strong></div><div class="proof-list">${checks.map(c => `<div class="proof-item ${c.ok ? "proof-ok" : "proof-fail"}"><div class="proof-mark">${c.ok ? "✓" : "×"}</div><div><div class="proof-claim">${escapeHtml(c.claim || "Claim")}</div><div class="proof-source">${escapeHtml(c.source_id || "no source")} ${c.valid_at_query_time === true ? "· valid at query time" : c.valid_at_query_time === false ? "· NOT valid at query time" : ""}</div>${c.quote ? `<div class="proof-quote">“${escapeHtml(c.quote)}”</div>` : ""}${(c.errors || []).length ? `<div class="proof-errors">${(c.errors || []).map(escapeHtml).join(" · ")}</div>` : ""}</div></div>`).join("")}</div>`;
 }
 
 function renderBaseline(data) {
   baselineAnswer.innerHTML = `<div class="answer">${escapeHtml(data.answer || "No answer")}</div>`;
-  baselineSources.innerHTML = (data.hits || []).map((hit, i) =>
-    `<div class="source-chip"><strong>#${i + 1}</strong> ${escapeHtml(hit.title)} · ${escapeHtml(hit.id)} · ${hit.score ?? "?"}</div>`
-  ).join("");
+  baselineSources.innerHTML = (data.hits || []).map((hit, i) => `<div class="source-chip"><strong>#${i + 1}</strong> ${escapeHtml(hit.title)} · ${escapeHtml(hit.id)} · ${hit.score ?? "?"}</div>`).join("");
   baselineMetrics.innerHTML = `<span>top-${(data.hits || []).length} once</span>${fmtTokens(data.usage) ? `<span>${escapeHtml(fmtTokens(data.usage))}</span>` : ""}`;
   badge(baselineBadge, "ONE-SHOT", "warn");
   window.dispatchEvent(new CustomEvent("context-baseline-result", { detail: data }));
@@ -273,7 +244,7 @@ async function runComparison() {
   runBtn.disabled = true;
   badge(baselineBadge, "RUNNING", "neutral");
   badge(compilerBadge, "RUNNING", "neutral");
-  loading(baselineAnswer, "Retrieving top-k once…");
+  loading(baselineAnswer, "One-shot RAG starting…");
   loading(compilerAnswer, "Compiling evidence live…");
   baselineSources.innerHTML = "";
   baselineMetrics.innerHTML = "";
@@ -286,9 +257,8 @@ async function runComparison() {
   verdictMeta.textContent = "";
   verdictStrip.className = "verdict-strip";
 
-  const opts = { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) };
   const [baselineResult, compilerResult] = await Promise.allSettled([
-    getJson(`${API}/baseline`, opts),
+    streamBaseline(payload),
     streamCompiler(payload),
   ]);
 
@@ -318,9 +288,7 @@ async function runComparison() {
 async function init() {
   try {
     const health = await getJson(`${API}/health`);
-    el("health").textContent = health.anthropic_key
-      ? `${health.documents} docs · ${health.model} · API ready`
-      : `${health.documents} docs · Anthropic key missing`;
+    el("health").textContent = health.anthropic_key ? `${health.documents} docs · ${health.model} · API ready` : `${health.documents} docs · Anthropic key missing`;
   } catch (err) {
     el("health").textContent = "API offline";
   }
