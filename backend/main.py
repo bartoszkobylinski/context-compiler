@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from .tools import load_corpus
 from .baseline import answer_baseline, retrieve_baseline
 from .agent import run_compiler
+from .gate import BasicAuthMiddleware
 from .challenge import CHALLENGES, make_challenge_candidate, reason_codes
 from .certificate import create_certificate, verify_certificate
 from .stream_events import set_event_sink, reset_event_sink
@@ -34,6 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Added last, so it wraps everything else — including the StaticFiles mount.
+# No-op unless DEMO_AUTH_USER and DEMO_AUTH_PASSWORD are both set.
+app.add_middleware(BasicAuthMiddleware)
 
 
 class AskRequest(BaseModel):
