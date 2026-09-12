@@ -39,10 +39,14 @@ def _compiler_passes(case: dict, compiler: dict) -> tuple[bool, list[str]]:
     reasons: list[str] = []
 
     expected_status = case.get("expected_status")
-    if expected_status and compiler.get("status") != expected_status:
-        reasons.append(f"status={compiler.get('status')} expected={expected_status}")
+    actual_status = compiler.get("status")
+    if expected_status and actual_status != expected_status:
+        reasons.append(f"status={actual_status} expected={expected_status}")
 
-    if not _answer_matches(case, compiler.get("answer", "")):
+    # UNKNOWN is an explicit machine-readable outcome. Do not additionally require
+    # the prose answer to contain the literal word "unknown"; that made correct
+    # abstentions fail merely because they were phrased naturally.
+    if expected_status != "UNKNOWN" and not _answer_matches(case, compiler.get("answer", "")):
         reasons.append("answer shape did not match expected outcome")
 
     required = set(case.get("required_sources", []))
@@ -53,6 +57,9 @@ def _compiler_passes(case: dict, compiler: dict) -> tuple[bool, list[str]]:
     verification = compiler.get("verification", {})
     if expected_status == "SUPPORTED" and verification and not verification.get("complete", False):
         reasons.append("deterministic verification incomplete")
+
+    if expected_status == "UNKNOWN" and verification and not verification.get("complete", False):
+        reasons.append("UNKNOWN evidence-gap verification incomplete")
 
     return not reasons, reasons
 
