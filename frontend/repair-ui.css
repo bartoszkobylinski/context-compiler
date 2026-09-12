@@ -1,0 +1,28 @@
+.repair-loop { display: none; margin-top: 18px; border: 1px solid #3d334f; border-radius: 16px; background: linear-gradient(180deg, rgba(26,20,39,.96), rgba(13,20,32,.96)); padding: 16px; }
+.repair-loop.visible { display: block; }
+.repair-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 14px; }
+.repair-kicker { font-size: 10px; letter-spacing: .14em; font-weight: 900; color: #b79cff; }
+.repair-title { margin-top: 5px; color: #e5ddff; font-size: 14px; font-weight: 800; }
+.repair-summary { border: 1px solid #39445a; color: #9eacc2; border-radius: 999px; padding: 6px 9px; font-size: 10px; font-weight: 900; white-space: nowrap; }
+.repair-summary-active { border-color: #74424d; color: #ffadb8; background: rgba(82,32,43,.32); }
+.repair-flow { display: flex; gap: 10px; align-items: stretch; overflow-x: auto; padding-bottom: 2px; }
+.repair-attempt { flex: 1 0 280px; border: 1px solid #303b50; border-radius: 13px; background: #0c1320; padding: 12px; }
+.repair-blocked { border-color: #64333e; box-shadow: inset 0 0 0 1px rgba(255,120,140,.05); }
+.repair-released { border-color: #285540; box-shadow: inset 0 0 0 1px rgba(107,235,161,.05); }
+.repair-attempt-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.repair-attempt-label { font-size: 10px; letter-spacing: .12em; font-weight: 900; color: #8594ad; }
+.repair-state { font-size: 10px; font-weight: 950; color: #b9c5d8; }
+.repair-blocked .repair-state { color: #ff9dab; }
+.repair-released .repair-state { color: #7ee0a7; }
+.repair-verify { margin-top: 9px; color: #d8e0ed; font-size: 12px; line-height: 1.4; }
+.repair-codes { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.repair-codes span { border: 1px solid #5a3440; background: #26161d; color: #ffacb8; border-radius: 7px; padding: 4px 6px; font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.repair-reason { margin-top: 8px; color: #aab5c8; font-size: 11px; line-height: 1.45; }
+.repair-agent-label { margin-top: 12px; padding-top: 10px; border-top: 1px solid #273248; color: #9f8cff; font-size: 9px; letter-spacing: .12em; font-weight: 950; }
+.repair-actions { margin-top: 7px; display: grid; gap: 5px; }
+.repair-actions div { color: #bac5d7; font-size: 11px; line-height: 1.35; }
+.repair-actions span { display: inline-block; margin-right: 6px; color: #a78eff; font-weight: 950; }
+.repair-arrow { align-self: center; color: #9b84e7; font-size: 24px; font-weight: 900; }
+.repair-footer { margin-top: 12px; padding-top: 11px; border-top: 1px solid #302944; color: #aeb9cc; font-size: 11px; }
+.repair-footer strong { color: #cdbfff; }
+@media (max-width: 900px) { .repair-head { flex-direction: column; } .repair-flow { flex-direction: column; } .repair-attempt { flex-basis: auto; } .repair-arrow { transform: rotate(90deg); } }
