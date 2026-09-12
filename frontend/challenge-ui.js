@@ -36,20 +36,24 @@
       const codes = challenge.reason_codes || [];
       const checks = repaired.verification?.checks || [];
       const passed = checks.filter(c => c.ok).length;
+      const challengeDate = challenge.challenge_date || queryDate.value || "query date";
+
+      // Keep the visible demo state aligned with the deterministic challenge run.
+      if (challenge.challenge_date) queryDate.value = challenge.challenge_date;
 
       resultHost.innerHTML = `
         <div class="challenge-stage challenge-stage-bad">
           <div class="challenge-stage-top">
-            <span>INJECTED CANDIDATE</span><strong>✕ BLOCKED</strong>
+            <span>INJECTED CANDIDATE · ${esc(challengeDate)}</span><strong>✕ BLOCKED</strong>
           </div>
           <div class="challenge-candidate">${esc(challenge.candidate?.answer || "")}</div>
           <div class="challenge-codes">${codes.map(code => `<span>${esc(code)}</span>`).join("")}</div>
-          <div class="challenge-reasons">${reasons.slice(0, 2).map(r => `<div>• ${esc(r)}</div>`).join("")}</div>
+          <div class="challenge-reasons">${reasons.slice(0, 3).map(r => `<div>• ${esc(r)}</div>`).join("")}</div>
         </div>
-        <div class="challenge-arrow">↓ verifier feedback / rebuild evidence</div>
+        <div class="challenge-arrow">↓ verifier feedback / agent rebuilds evidence</div>
         <div class="challenge-stage challenge-stage-good">
           <div class="challenge-stage-top">
-            <span>CONTEXT COMPILER</span><strong>✓ ${esc(repaired.status || "RELEASED")}</strong>
+            <span>CONTEXT COMPILER · ${esc(challengeDate)}</span><strong>✓ ${esc(repaired.status || "RELEASED")}</strong>
           </div>
           <div class="challenge-candidate">${esc(repaired.answer || "")}</div>
           <div class="challenge-release-meta">${passed}/${checks.length} claims verified · ${repaired.steps ?? "?"} agent steps</div>
