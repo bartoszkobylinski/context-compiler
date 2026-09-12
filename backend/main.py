@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from .tools import load_corpus
 from .baseline import answer_baseline, retrieve_baseline
 from .agent import run_compiler
+from .challenge import CHALLENGES, make_challenge_candidate, reason_codes
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = load_corpus(ROOT / "corpus")
@@ -30,13 +31,17 @@ class AskRequest(BaseModel):
     query_date: date | None = None
 
 
+class ChallengeRequest(AskRequest):
+    challenge_type: str
+
+
 @app.get("/health")
 def health():
     return {
         "ok": True,
         "documents": len(CORPUS),
         "anthropic_key": bool(os.getenv("ANTHROPIC_API_KEY")),
-        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5"),
+        "model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5"),
     }
 
 
@@ -58,6 +63,34 @@ def compiler(req: AskRequest):
         return run_compiler(CORPUS, req.question, req.query_date)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Compiler failed: {exc}") from exc
+
+
+@app.get("/challenge-types")
+def challenge_types():
+    return [{"type": key, **value} for key, value in CHALLENGES.items()]
+
+
+@app.post("/challenge")
+def challenge(req: ChallengeRequest):
+    """Inject a deterministic bad candidate, prove the verifier blocks it, then rebuild evidence."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+    try:
+        injected = make_challenge_candidate(CORPUS, req.question, req.query_date, req.challenge_type)
+        if not injected["blocked"]:
+            raise RuntimeError("challenge mutation unexpectedly passed verification")
+        repaired = run_compiler(CORPUS, req.question, req.query_date)
+        return {
+            "challenge": {
+                **injected,
+                "reason_codes": reason_codes(injected["verification"]),
+            },
+            "repaired": repaired,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Challenge failed: {exc}") from exc
 
 
 @app.get("/diagnostics/retrieval")
