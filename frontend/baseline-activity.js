@@ -19,7 +19,7 @@
     if (event.type === 'RETRIEVING') return 'Searching top-k once';
     if (event.type === 'TOP_K_READY') return 'Top-k fixed';
     if (event.type === 'ANSWERING') return 'Model answering from fixed context';
-    if (event.type === 'ANSWER_READY') return 'One-shot answer ready';
+    if (event.type === 'MODEL_RETURNED') return 'Model returned';
     return event.message || event.type;
   }
 
@@ -30,6 +30,7 @@
       return hits.map((h, i) => `#${i + 1} ${h.title || h.id} · ${h.score ?? '?'}`).join(' · ');
     }
     if (event.type === 'ANSWERING') return 'No version graph · no temporal check · no second retrieval pass';
+    if (event.type === 'MODEL_RETURNED') return 'Waiting only for the streamed result payload to render';
     return event.message || '';
   }
 
