@@ -30,7 +30,7 @@ CORPUS = load_corpus(ROOT / "corpus")
 app = FastAPI(title="Context Compiler", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://hackanton.bartoszkobylinski.com", "http://localhost:3000"],
+    allow_origins=["https://hackathon.bartoszkobylinski.com", "http://localhost:3000"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
