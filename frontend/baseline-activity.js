@@ -16,20 +16,21 @@
 
   function titleFor(event) {
     if (event.type === 'QUESTION') return 'Question received';
-    if (event.type === 'RETRIEVING') return 'Searching top-k once';
-    if (event.type === 'TOP_K_READY') return 'Top-k fixed';
-    if (event.type === 'ANSWERING') return 'Model answering from fixed context';
+    if (event.type === 'RETRIEVING') return event.payload?.pass === 2 ? 'Second retrieval pass' : 'First retrieval pass';
+    if (event.type === 'TOP_K_READY') return event.payload?.pass === 2 ? 'Second top-k ready' : 'First top-k ready';
+    if (event.type === 'GAP_QUERY') return 'Model identifies missing evidence';
+    if (event.type === 'ANSWERING') return 'Model answering from both passes';
     if (event.type === 'MODEL_RETURNED') return 'Model returned';
     return event.message || event.type;
   }
 
   function detailFor(event) {
-    if (event.type === 'RETRIEVING') return event.message;
+    if (event.type === 'RETRIEVING' || event.type === 'GAP_QUERY') return event.message;
     if (event.type === 'TOP_K_READY') {
       const hits = event.payload?.hits || [];
       return hits.map((h, i) => `#${i + 1} ${h.title || h.id} · ${h.score ?? '?'}`).join(' · ');
     }
-    if (event.type === 'ANSWERING') return 'No version graph · no temporal check · no second retrieval pass';
+    if (event.type === 'ANSWERING') return 'Two retrieval passes · no evidence contract · no deterministic release gate';
     if (event.type === 'MODEL_RETURNED') return 'Waiting only for the streamed result payload to render';
     return event.message || '';
   }
@@ -38,13 +39,13 @@
     const title = titleFor(event);
     const detail = detailFor(event);
     history.push({title, detail});
-    history = history.slice(-4);
+    history = history.slice(-5);
     host.innerHTML = `
       <div class="baseline-live-card">
-        <div class="baseline-live-head"><span>ONE-SHOT ACTIVITY</span><strong>${esc(event.type)}</strong></div>
+        <div class="baseline-live-head"><span>TWO-PASS RAG ACTIVITY</span><strong>${esc(event.type)}</strong></div>
         <div class="baseline-live-now"><span class="spinner"></span><div><strong>${esc(title)}</strong><div>${esc(detail)}</div></div></div>
         <div class="baseline-live-history">${history.map((item, i) => `<div class="baseline-live-row ${i === history.length - 1 ? 'current' : ''}"><span>${i === history.length - 1 ? '→' : '✓'}</span><div><strong>${esc(item.title)}</strong>${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</div></div>`).join('')}</div>
-        <div class="baseline-live-foot"><span>single retrieval pass</span><span id="baselineElapsed">${elapsed()}s</span></div>
+        <div class="baseline-live-foot"><span>one learned follow-up retrieval</span><span id="baselineElapsed">${elapsed()}s</span></div>
       </div>`;
   }
 
