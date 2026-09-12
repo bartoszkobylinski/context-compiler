@@ -84,8 +84,6 @@
       return;
     }
 
-    // Challenge mode already has its own adversarial story. Keep the receipt tied to the
-    // normal comparison run so the visible query date and certificate date cannot diverge.
     const challengeResult = document.getElementById("challengeResult");
     if (challengeResult?.classList.contains("visible")) return;
 
@@ -102,6 +100,12 @@
       host.innerHTML = `<div class="cert-error">Receipt not issued: ${esc(err.message || err)}</div>`;
     }
   }
+
+  window.addEventListener("context-run-start", () => {
+    currentCertificate = null;
+    host.innerHTML = "";
+    host.classList.remove("visible");
+  });
 
   window.addEventListener("context-compiler-result", event => issue(event.detail || {}));
 })();
