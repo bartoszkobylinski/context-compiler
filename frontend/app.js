@@ -36,6 +36,61 @@ async function getJson(url, options = {}) {
   return res.json();
 }
 
+function friendlyEvent(event) {
+  const type = event.type || "EVENT";
+  const payload = event.payload || {};
+  const input = payload.input || {};
+  const result = payload.result || {};
+
+  if (type === "EVIDENCE_REQUIREMENTS") {
+    const reqs = result.requirements || input.requirements || [];
+    return reqs.length
+      ? `Need to establish: ${reqs.join(" · ")}`
+      : event.message;
+  }
+
+  if (type === "SEARCHING") {
+    return input.query ? `Search: “${input.query}”` : event.message;
+  }
+
+  if (type === "DOCUMENT_FOUND") {
+    return result.id ? `Opened ${result.title || result.id} · ${result.id}` : event.message;
+  }
+
+  if (type === "VERSION_CHECK") {
+    const versions = Array.isArray(result) ? result.map(v => v.id).filter(Boolean) : [];
+    return versions.length ? `Found versions: ${versions.join(" → ")}` : event.message;
+  }
+
+  if (type === "TEMPORAL_CHECK") {
+    if (result.document) {
+      const verdict = result.valid ? "VALID" : "NOT VALID";
+      return `${result.document} @ ${result.date}: ${verdict} · ${result.reason || ""}`;
+    }
+    return event.message;
+  }
+
+  if (type === "FOLLOWING_REFERENCE") {
+    return input.reference_id
+      ? `Followed reference: ${input.document_id} → ${input.reference_id}`
+      : event.message;
+  }
+
+  if (type === "VERIFYING") {
+    return event.message || "Checking every material claim against source evidence";
+  }
+
+  if (type === "SUPPORTED") {
+    return event.message || "All material claims verified";
+  }
+
+  if (type === "UNKNOWN") {
+    return event.message || "Evidence boundary reached — abstaining";
+  }
+
+  return event.message || type;
+}
+
 function renderEvents(events = []) {
   timeline.innerHTML = "";
   events.forEach((event, index) => {
@@ -45,7 +100,7 @@ function renderEvents(events = []) {
     item.style.transform = "translateY(5px)";
     item.innerHTML = `
       <div class="event-type">${escapeHtml(event.type)}</div>
-      <div class="event-message">${escapeHtml(event.message)}</div>`;
+      <div class="event-message">${escapeHtml(friendlyEvent(event))}</div>`;
     timeline.appendChild(item);
     setTimeout(() => {
       item.style.transition = "opacity .18s ease, transform .18s ease";
@@ -111,7 +166,7 @@ async function runComparison() {
   badge(baselineBadge, "RUNNING", "neutral");
   badge(compilerBadge, "RUNNING", "neutral");
   loading(baselineAnswer, "Retrieving top-k once…");
-  loading(compilerAnswer, "Building evidence iteratively…");
+  loading(compilerAnswer, "Compiling evidence…");
   baselineSources.innerHTML = "";
   timeline.innerHTML = "";
   proof.innerHTML = "";
