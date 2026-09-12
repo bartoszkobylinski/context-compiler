@@ -47,7 +47,16 @@
         <button id="verifyCertificate" class="cert-btn cert-btn-primary">Verify receipt</button>
         <button id="tamperCertificate" class="cert-btn">Tamper with quote</button>
       </div>
-      <div id="certificateVerification" class="cert-verification">Integrity is bound to the answer, claims, source fingerprints and query date.</div>`;
+      <div id="certificateVerification" class="cert-verification">Integrity is bound to the answer, claims, source fingerprints and query date.</div>
+      <div class="dataset-handoff">
+        <div class="dataset-arrow">↓</div>
+        <div>
+          <div class="dataset-kicker">VERIFIED DECISION DATASET</div>
+          <div class="dataset-title">Receipt becomes a high-quality supervision record.</div>
+          <div class="dataset-copy">request + evidence requirements + accepted claims + source fingerprints + verifier result + released decision → useful for retrieval tuning, routing and future requirement generation.</div>
+        </div>
+        <div class="dataset-status">TRAINING-READY</div>
+      </div>`;
 
     document.getElementById("verifyCertificate")?.addEventListener("click", () => verify(cert, false));
     document.getElementById("tamperCertificate")?.addEventListener("click", () => {
