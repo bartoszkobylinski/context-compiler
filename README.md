@@ -67,17 +67,23 @@ cp .env.example .env
 make api
 ```
 
+The demo uses dedicated ports by default:
+
+- API: `http://localhost:4865`
+- frontend: `http://localhost:4866`
+
+Both can be overridden when needed, e.g. `make api API_PORT=9001` or `make frontend FRONTEND_PORT=9002`.
+
 `.env` is loaded automatically on import (`backend/__init__.py`); it overrides any
 `ANTHROPIC_*` already exported in the shell.
 
 In another terminal:
 
 ```bash
-cd frontend
-python3 -m http.server 3000
+make frontend
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:4866`.
 
 ## Test
 
