@@ -10,6 +10,7 @@ const baselineBadge = el("baselineBadge");
 const compilerBadge = el("compilerBadge");
 const baselineSources = el("baselineSources");
 const timeline = el("timeline");
+const proof = el("proof");
 const presets = el("presets");
 
 function badge(node, text, kind = "neutral") {
@@ -22,7 +23,7 @@ function loading(node, text) {
 }
 
 function escapeHtml(s = "") {
-  return s.replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+  return String(s).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 }
 
 async function getJson(url, options = {}) {
@@ -39,7 +40,7 @@ function renderEvents(events = []) {
   timeline.innerHTML = "";
   events.forEach((event, index) => {
     const item = document.createElement("div");
-    item.className = "event";
+    item.className = `event event-${String(event.type || "").toLowerCase()}`;
     item.style.opacity = "0";
     item.style.transform = "translateY(5px)";
     item.innerHTML = `
@@ -50,8 +51,37 @@ function renderEvents(events = []) {
       item.style.transition = "opacity .18s ease, transform .18s ease";
       item.style.opacity = "1";
       item.style.transform = "translateY(0)";
-    }, Math.min(index * 120, 1200));
+    }, Math.min(index * 110, 1100));
   });
+}
+
+function renderProof(data) {
+  const checks = data?.verification?.checks || [];
+  if (!checks.length) {
+    proof.innerHTML = data.status === "UNKNOWN"
+      ? `<div class="proof-head"><span>KNOWLEDGE BOUNDARY</span><strong>No claim released without evidence</strong></div>`
+      : "";
+    return;
+  }
+
+  const passed = checks.filter(c => c.ok).length;
+  proof.innerHTML = `
+    <div class="proof-head">
+      <span>DETERMINISTIC VERIFIER</span>
+      <strong>${passed}/${checks.length} claims passed</strong>
+    </div>
+    <div class="proof-list">
+      ${checks.map(c => `
+        <div class="proof-item ${c.ok ? "proof-ok" : "proof-fail"}">
+          <div class="proof-mark">${c.ok ? "✓" : "×"}</div>
+          <div>
+            <div class="proof-claim">${escapeHtml(c.claim || "Claim")}</div>
+            <div class="proof-source">${escapeHtml(c.source_id || "no source")} ${c.valid_at_query_time === true ? "· valid at query time" : c.valid_at_query_time === false ? "· NOT valid at query time" : ""}</div>
+            ${c.quote ? `<div class="proof-quote">“${escapeHtml(c.quote)}”</div>` : ""}
+            ${(c.errors || []).length ? `<div class="proof-errors">${(c.errors || []).map(escapeHtml).join(" · ")}</div>` : ""}
+          </div>
+        </div>`).join("")}
+    </div>`;
 }
 
 function renderBaseline(data) {
@@ -67,6 +97,7 @@ function renderCompiler(data) {
   const kind = data.status === "SUPPORTED" ? "good" : data.status === "UNKNOWN" ? "warn" : "bad";
   badge(compilerBadge, data.status || "DONE", kind);
   renderEvents(data.events || []);
+  renderProof(data);
 }
 
 async function runComparison() {
@@ -83,6 +114,7 @@ async function runComparison() {
   loading(compilerAnswer, "Building evidence iteratively…");
   baselineSources.innerHTML = "";
   timeline.innerHTML = "";
+  proof.innerHTML = "";
 
   const opts = {
     method: "POST",
