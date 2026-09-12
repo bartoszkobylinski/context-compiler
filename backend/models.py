@@ -48,4 +48,4 @@ class AgentState:
     visited_documents: set[str] = field(default_factory=set)
     events: list[ToolEvent] = field(default_factory=EventList)
     step: int = 0
-    max_steps: int = 16
+    max_steps: int = 22
