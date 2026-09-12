@@ -190,24 +190,15 @@ def challenge(req: ChallengeRequest):
 
 @app.get("/diagnostics/retrieval")
 def retrieval_diagnostics(
-    question: str = "Can a contractor access customer data from a personal laptop using VPN?",
+    question: str = "Can Order #4821 ship today as one parcel via PolarExpress Air Next-Day to Tromsø?",
     top_k: int = 8,
 ):
     top_k = max(1, min(top_k, 20))
     hits = retrieve_baseline(CORPUS, question, top_k=top_k)
-    ids = [hit["id"] for hit in hits]
     return {
         "question": question,
         "hits": hits,
-        "temporal_trap": {
-            "historical_policy": "security-policy-2024",
-            "historical_rank": ids.index("security-policy-2024") + 1 if "security-policy-2024" in ids else None,
-            "current_policy": "security-policy-2025",
-            "current_rank": ids.index("security-policy-2025") + 1 if "security-policy-2025" in ids else None,
-            "historical_missing_from_top3": "security-policy-2024" not in ids[:3],
-            "current_present_in_top3": "security-policy-2025" in ids[:3],
-        },
-        "note": "This endpoint performs retrieval only; it makes no Anthropic API call.",
+        "note": "Retrieval-only diagnostics. Operational correctness may require dependencies outside top-k.",
     }
 
 
@@ -215,21 +206,38 @@ def retrieval_diagnostics(
 def demo_cases():
     return [
         {
-            "label": "Ship Order #4821",
+            "label": "Mixed restricted goods",
             "mode": "shipping",
             "question": "Can Order #4821 ship today as one parcel via PolarExpress Air Next-Day to Tromsø? If not, determine a compliant alternative shipping plan from the approved corpus.",
             "query_date": "2026-09-12",
-            "expected": "Do not ship as one parcel; split the perfume and power bank into approved services and packaging.",
-            "action": "Ship Order #4821",
-            "order": {
-                "destination": "Tromsø, Norway",
-                "requested_service": "PolarExpress Air Next-Day",
-                "items": ["Fjord Mist perfume · 100 ml", "PB20 power bank · 20,000 mAh"],
-                "requested_plan": "One parcel · ship today",
-            },
+            "expected": "Split perfume and power bank because their restricted-goods and packaging rules conflict.",
         },
-        {"label": "Before policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-06-10", "expected": "YES, but only with VPN and full-disk encryption"},
-        {"label": "After policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-08-10", "expected": "NO, company-managed device required"},
-        {"label": "Multi-hop AI policy", "question": "Can an employee paste customer data into an external AI assistant?", "query_date": "2025-08-10", "expected": "NO unless that AI provider is explicitly approved for Confidential data"},
-        {"label": "Knowledge boundary", "question": "Can a contractor expense their spouse's breakfast?", "query_date": "2025-08-10", "expected": "UNKNOWN"},
+        {
+            "label": "Cold chain + weather",
+            "mode": "shipping",
+            "question": "Can Order #5902 ship today to Tromsø on PolarExpress Air Next-Day using the available packaging while preserving its 2–8°C requirement and the customer's next-business-day request? If the requested plan cannot be released, determine the safest approved alternative.",
+            "query_date": "2026-09-12",
+            "expected": "Resolve temperature-control requirements, packaging inventory, weather disruption and service alternatives instead of assuming express means safe.",
+        },
+        {
+            "label": "Live animal + weekend",
+            "mode": "shipping",
+            "question": "Can Order #6107, containing a live ornamental gecko, be dispatched today to Tromsø on the requested service? If not, determine when and how it can next be shipped from the approved corpus.",
+            "query_date": "2026-09-12",
+            "expected": "Requested express service is not live-animal approved; weekend and weather acceptance constraints must also be satisfied.",
+        },
+        {
+            "label": "Glass + cheapest service",
+            "mode": "shipping",
+            "question": "Can Order #7710 ship today to Bergen using the customer's cheapest Standard Economy choice with no signature? If not, determine a compliant service and packaging plan.",
+            "query_date": "2026-09-12",
+            "expected": "Fragile packaging, declared value, insurance and signature requirements override the customer's cheapest-service preference.",
+        },
+        {
+            "label": "High value + remote address",
+            "mode": "shipping",
+            "question": "Can Order #8820 meet the customer's requested leave-at-door delivery before 10:00 on 13 September 2026 at the Senja address? If not, determine the earliest compliant delivery plan supported by the corpus.",
+            "query_date": "2026-09-12",
+            "expected": "High-value signature and supervisor rules conflict with leave-at-door, and the remote address has no staffed Sunday delivery.",
+        },
     ]
