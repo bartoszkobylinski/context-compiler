@@ -2,50 +2,96 @@
 
 Hackathon MVP: turn retrieval from a one-shot similarity lookup into an evidence-building loop.
 
+> **We don't make the model know more. We make it prove that it knows enough.**
+
 ## Core idea
 
 Traditional RAG:
 
-`question -> top-k similarity -> model -> answer`
+`question -> top-k chunks -> model -> answer`
 
 Context Compiler:
 
-`question -> evidence requirements -> iterative retrieval -> temporal/authority checks -> claim verification -> answer or UNKNOWN`
+`question -> evidence requirements -> iterative retrieval -> temporal/authority checks -> deterministic claim verification -> answer or UNKNOWN`
 
-## Demo scenario
+The same corpus is used by both paths. The baseline sees only similarity-selected text chunks. Context Compiler can inspect structured relationships such as versions, validity intervals, authority and explicit references.
 
-Primary security question:
+## Primary demo
 
-> Can a contractor access customer data from a personal laptop using VPN on June 10, 2025?
+Question:
 
-Expected answer: **YES**, because the 2024 security policy is still valid on that date, but only with VPN + full-disk encryption.
+> Can a contractor access customer data from a personal laptop using VPN?
 
-Same question on August 10, 2025:
+At **2025-06-10** the expected answer is **YES, conditionally**: Security Policy 2024 is still valid and requires VPN + full-disk encryption.
 
-Expected answer: **NO**, because the 2025 policy is effective from July 1, 2025 and requires a company-managed device.
+At **2025-08-10** the expected answer is **NO**: Security Policy 2025 became effective on July 1 and requires a company-managed device.
 
-Third case:
+This demonstrates that every retrieved document can be real and still produce the wrong answer when evidence belongs to the wrong point in time.
 
-> Can a contractor expense their spouse's breakfast?
+## Other demo cases
 
-Expected answer: **UNKNOWN**.
+- **Multi-hop:** Can an employee paste customer data into an external AI assistant? The agent must follow AI Usage Guidelines -> Data Classification Policy -> AI Security Addendum.
+- **Knowledge boundary:** Can a contractor expense their spouse's breakfast? The correct answer is **UNKNOWN** because the approved corpus does not establish a rule.
+- **Adversarial guidance:** Remote Access Quickstart is highly similar to the security question but is lower-authority guidance and explicitly defers customer-data rules to the Security Policy.
+
+## Evidence contract
+
+A `SUPPORTED` answer is released only when each material claim has:
+
+1. an existing approved `source_id`,
+2. a short **verbatim supporting quote** present in that source,
+3. a source valid at the requested point in time.
+
+If verification fails, the answer is rejected and the agent goes back into the retrieval loop. If the gap cannot be repaired, the result is `UNKNOWN`.
 
 ## Architecture
 
-- `frontend/` — minimal demo UI (planned)
-- `backend/` — FastAPI + baseline RAG + Context Compiler loop
-- `backend/tools/` — retrieval, versioning, temporal checks
+- `frontend/` — side-by-side Traditional RAG vs Context Compiler demo
+- `backend/main.py` — FastAPI endpoints
+- `backend/agent.py` — Anthropic tool-use evidence loop
+- `backend/verifier.py` — deterministic evidence gate
+- `backend/temporal.py` — deterministic validity checks
+- `backend/tools/` — search, open, version and reference tools
 - `corpus/` — curated Markdown corpus with YAML metadata
-- `evals/` — deterministic demo cases
-- `tests/` — temporal and corpus tests
+- `evals/` — adversarial demo cases + comparison runner
+- `tests/` — temporal and verifier tests
 
-## Definition of done
+## Run locally
 
-1. Baseline RAG can produce a plausible but temporally wrong answer on at least one case.
-2. Context Compiler resolves the correct policy valid at the query date.
-3. Context Compiler returns `UNKNOWN` when evidence is insufficient.
-4. UI visibly shows the evidence-building actions.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
 
-## Non-goals for hackathon
+export ANTHROPIC_API_KEY="..."
+export ANTHROPIC_MODEL="..."
 
-No auth, no Postgres, no Supabase, no PDF OCR, no graph DB, no user accounts, no production deployment requirements.
+uvicorn backend.main:app --reload
+```
+
+In another terminal:
+
+```bash
+cd frontend
+python3 -m http.server 3000
+```
+
+Open `http://localhost:3000`.
+
+## Test
+
+```bash
+pytest -q
+```
+
+## Run the demo eval set
+
+```bash
+python -m evals.run_eval
+```
+
+Detailed results are written to `evals/latest-results.json`.
+
+## Hackathon non-goals
+
+No auth, no Postgres, no Supabase, no PDF OCR, no graph DB, no user accounts, no production-scale ingestion pipeline.
