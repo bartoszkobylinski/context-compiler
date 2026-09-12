@@ -1,0 +1,33 @@
+[Unit]
+Description=Context Compiler (hackathon demo)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bartek
+WorkingDirectory=/home/bartek/context-compiler
+Environment=PYTHONPATH=/home/bartek/context-compiler
+EnvironmentFile=/home/bartek/context-compiler/.env
+ExecStart=/home/bartek/context-compiler/.venv/bin/uvicorn backend.main:app \
+          --host 127.0.0.1 --port 4865 --workers 1
+Restart=on-failure
+RestartSec=5
+
+# ruth106 also runs production politik.no, which idles at ~5.3 GB of 8 GB, and
+# earlyoom SIGTERMs the largest process once available memory drops below ~15%
+# (~1.2 GB). The cap keeps this service small; OOMScoreAdjust makes it the first
+# victim instead of politik, so a demo can never take production down.
+MemoryHigh=300M
+MemoryMax=400M
+OOMScoreAdjust=500
+
+# Filesystem/kernel protections only. Do NOT add RestrictNamespaces or
+# MemoryDenyWriteExecute: on the sibling mikr.us box that seccomp filter blocks
+# clone3() and kills any Python-asyncio service at shutdown.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
