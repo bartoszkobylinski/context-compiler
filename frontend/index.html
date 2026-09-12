@@ -41,7 +41,7 @@
           </div>
           <div class="badge neutral" id="baselineBadge">ONE-SHOT</div>
         </div>
-        <div class="flow-mini">question → top-k → answer</div>
+        <div class="flow-mini">question → top-k chunks → answer</div>
         <div class="answer-box" id="baselineAnswer">
           <div class="empty">Run a case to see the one-shot answer.</div>
         </div>
@@ -56,16 +56,17 @@
           </div>
           <div class="badge neutral" id="compilerBadge">READY</div>
         </div>
-        <div class="flow-mini">requirements → search → inspect → verify → answer / unknown</div>
+        <div class="flow-mini">requirements → search → inspect → temporal check → verify → answer / unknown</div>
         <div class="answer-box" id="compilerAnswer">
-          <div class="empty">The agent will expose actions, not private chain-of-thought.</div>
+          <div class="empty">The agent exposes actions and evidence, not private chain-of-thought.</div>
         </div>
         <div class="timeline" id="timeline"></div>
+        <div class="proof" id="proof"></div>
       </article>
     </section>
 
     <section class="footer-note">
-      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, or valid at the wrong point in time.
+      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, lower-authority, or valid at the wrong point in time.
     </section>
   </main>
   <script src="./app.js"></script>
