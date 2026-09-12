@@ -15,6 +15,8 @@ const presets = el("presets");
 const baselineMetrics = el("baselineMetrics");
 const compilerMetrics = el("compilerMetrics");
 const decisionCard = el("decisionCard");
+const repairLoop = el("repairLoop");
+const certificateCard = el("certificateCard");
 const verdictStrip = el("verdictStrip");
 const verdictMain = el("verdictMain");
 const verdictMeta = el("verdictMeta");
@@ -29,7 +31,7 @@ function loading(node, text) {
 }
 
 function escapeHtml(s = "") {
-  return String(s).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+  return String(s).replace(/[&<>'\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'\"':"&quot;"}[c]));
 }
 
 async function getJson(url, options = {}) {
@@ -249,6 +251,14 @@ async function runComparison() {
   decisionCard.classList.remove("visible");
   timeline.innerHTML = "";
   proof.innerHTML = "";
+  if (repairLoop) {
+    repairLoop.innerHTML = "";
+    repairLoop.classList.remove("visible");
+  }
+  if (certificateCard) {
+    certificateCard.innerHTML = "";
+    certificateCard.classList.remove("visible");
+  }
   verdictMain.textContent = "Running both paths against the same corpus…";
   verdictMeta.textContent = "";
   verdictStrip.className = "verdict-strip";
