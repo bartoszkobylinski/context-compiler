@@ -1,11 +1,13 @@
-.PHONY: install test api
+.PHONY: install test api eval
 
 install:
-	python3 -m venv .venv
-	. .venv/bin/activate && pip install -r backend/requirements.txt
+	uv sync
 
 test:
-	PYTHONPATH=. pytest -q
+	PYTHONPATH=. uv run pytest -q
 
 api:
-	PYTHONPATH=. uvicorn backend.main:app --reload --port 8000
+	PYTHONPATH=. uv run uvicorn backend.main:app --reload --port 8000
+
+eval:
+	PYTHONPATH=. uv run python -m evals.run_eval
