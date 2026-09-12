@@ -128,9 +128,7 @@ function friendlyEvent(event) {
     return event.message;
   }
   if (type === "OUTDATED_SOURCE") return `Rejected as temporally invalid · ${payload.reason || event.message || "wrong point in time"}`;
-  if (type === "FOLLOWING_REFERENCE") {
-    return input.reference_id ? `Followed reference: ${input.document_id} → ${input.reference_id}` : event.message;
-  }
+  if (type === "FOLLOWING_REFERENCE") return input.reference_id ? `Followed reference: ${input.document_id} → ${input.reference_id}` : event.message;
   if (type === "VERIFYING") return event.message || "Checking every material claim against source evidence";
   if (type === "EVIDENCE_GAP") return event.message || "Evidence failed verification — continue retrieval";
   if (type === "SUPPORTED") return event.message || "All material claims verified";
@@ -190,7 +188,6 @@ function renderProof(data) {
     proof.innerHTML = data.status === "UNKNOWN" ? `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>0 unsupported claims released</strong></div>` : "";
     return;
   }
-
   const passed = checks.filter(c => c.ok).length;
   proof.innerHTML = `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>${passed}/${checks.length} claims passed</strong></div><div class="proof-list">${checks.map(c => `<div class="proof-item ${c.ok ? "proof-ok" : "proof-fail"}"><div class="proof-mark">${c.ok ? "✓" : "×"}</div><div><div class="proof-claim">${escapeHtml(c.claim || "Claim")}</div><div class="proof-source">${escapeHtml(c.source_id || "no source")} ${c.valid_at_query_time === true ? "· valid at query time" : c.valid_at_query_time === false ? "· NOT valid at query time" : ""}</div>${c.quote ? `<div class="proof-quote">“${escapeHtml(c.quote)}”</div>` : ""}${(c.errors || []).length ? `<div class="proof-errors">${(c.errors || []).map(escapeHtml).join(" · ")}</div>` : ""}</div></div>`).join("")}</div>`;
 }
@@ -218,7 +215,6 @@ function renderVerdict(baseline, compiler) {
   const bp = answerPolarity(baseline?.answer || "");
   const cp = answerPolarity(compiler?.answer || "");
   verdictStrip.className = "verdict-strip";
-
   const outdated = (compiler?.events || []).some(e => e.type === "OUTDATED_SOURCE");
   if (outdated && bp && cp && bp !== cp) {
     verdictStrip.classList.add("verdict-alert");
@@ -257,31 +253,40 @@ async function runComparison() {
   verdictMeta.textContent = "";
   verdictStrip.className = "verdict-strip";
 
-  const [baselineResult, compilerResult] = await Promise.allSettled([
-    streamBaseline(payload),
-    streamCompiler(payload),
-  ]);
-
   let baselineData = null;
   let compilerData = null;
 
-  if (baselineResult.status === "fulfilled") {
-    baselineData = baselineResult.value;
-    renderBaseline(baselineData);
-  } else {
-    baselineAnswer.innerHTML = `<div class="error">${escapeHtml(baselineResult.reason.message)}</div>`;
-    badge(baselineBadge, "ERROR", "bad");
-  }
+  const maybeVerdict = () => {
+    if (baselineData && compilerData) renderVerdict(baselineData, compilerData);
+  };
 
-  if (compilerResult.status === "fulfilled") {
-    compilerData = compilerResult.value;
-    renderCompiler(compilerData);
-  } else {
-    compilerAnswer.innerHTML = `<div class="error">${escapeHtml(compilerResult.reason.message)}</div>`;
-    badge(compilerBadge, "ERROR", "bad");
-  }
+  const baselinePromise = streamBaseline(payload)
+    .then(data => {
+      baselineData = data;
+      renderBaseline(data);
+      maybeVerdict();
+      return data;
+    })
+    .catch(err => {
+      baselineAnswer.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      badge(baselineBadge, "ERROR", "bad");
+      throw err;
+    });
 
-  if (baselineData && compilerData) renderVerdict(baselineData, compilerData);
+  const compilerPromise = streamCompiler(payload)
+    .then(data => {
+      compilerData = data;
+      renderCompiler(data);
+      maybeVerdict();
+      return data;
+    })
+    .catch(err => {
+      compilerAnswer.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      badge(compilerBadge, "ERROR", "bad");
+      throw err;
+    });
+
+  await Promise.allSettled([baselinePromise, compilerPromise]);
   runBtn.disabled = false;
 }
 
