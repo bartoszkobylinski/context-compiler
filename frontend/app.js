@@ -12,6 +12,12 @@ const baselineSources = el("baselineSources");
 const timeline = el("timeline");
 const proof = el("proof");
 const presets = el("presets");
+const baselineMetrics = el("baselineMetrics");
+const compilerMetrics = el("compilerMetrics");
+const decisionCard = el("decisionCard");
+const verdictStrip = el("verdictStrip");
+const verdictMain = el("verdictMain");
+const verdictMeta = el("verdictMeta");
 
 function badge(node, text, kind = "neutral") {
   node.textContent = text;
@@ -36,6 +42,22 @@ async function getJson(url, options = {}) {
   return res.json();
 }
 
+function fmtTokens(usage = {}) {
+  const input = Number(usage.input_tokens || 0);
+  const output = Number(usage.output_tokens || 0);
+  if (!input && !output) return "";
+  const short = n => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 1 : 2)}k` : String(n);
+  return `${short(input)} in · ${short(output)} out`;
+}
+
+function answerPolarity(answer = "") {
+  const text = answer.trim().toLowerCase();
+  if (/^(no\b|no[,. —-]|not allowed|cannot\b)/.test(text)) return "NO";
+  if (/^(yes\b|yes[,. —-]|under the security policy.*may\b)/.test(text)) return "YES";
+  if (text.includes("does not contain") || text.includes("cannot be answered") || text.startsWith("unknown")) return "UNKNOWN";
+  return "";
+}
+
 function friendlyEvent(event) {
   const type = event.type || "EVENT";
   const payload = event.payload || {};
@@ -44,24 +66,14 @@ function friendlyEvent(event) {
 
   if (type === "EVIDENCE_REQUIREMENTS") {
     const reqs = result.requirements || input.requirements || [];
-    return reqs.length
-      ? `Need to establish: ${reqs.join(" · ")}`
-      : event.message;
+    return reqs.length ? `Need to establish: ${reqs.join(" · ")}` : event.message;
   }
-
-  if (type === "SEARCHING") {
-    return input.query ? `Search: “${input.query}”` : event.message;
-  }
-
-  if (type === "DOCUMENT_FOUND") {
-    return result.id ? `Opened ${result.title || result.id} · ${result.id}` : event.message;
-  }
-
+  if (type === "SEARCHING") return input.query ? `Search: “${input.query}”` : event.message;
+  if (type === "DOCUMENT_FOUND") return result.id ? `Opened ${result.title || result.id} · ${result.id}` : event.message;
   if (type === "VERSION_CHECK") {
     const versions = Array.isArray(result) ? result.map(v => v.id).filter(Boolean) : [];
     return versions.length ? `Found versions: ${versions.join(" → ")}` : event.message;
   }
-
   if (type === "TEMPORAL_CHECK") {
     if (result.document) {
       const verdict = result.valid ? "VALID" : "NOT VALID";
@@ -69,31 +81,26 @@ function friendlyEvent(event) {
     }
     return event.message;
   }
-
+  if (type === "OUTDATED_SOURCE") return `Rejected as temporally invalid · ${payload.reason || event.message || "wrong point in time"}`;
   if (type === "FOLLOWING_REFERENCE") {
-    return input.reference_id
-      ? `Followed reference: ${input.document_id} → ${input.reference_id}`
-      : event.message;
+    return input.reference_id ? `Followed reference: ${input.document_id} → ${input.reference_id}` : event.message;
   }
-
-  if (type === "VERIFYING") {
-    return event.message || "Checking every material claim against source evidence";
-  }
-
-  if (type === "SUPPORTED") {
-    return event.message || "All material claims verified";
-  }
-
-  if (type === "UNKNOWN") {
-    return event.message || "Evidence boundary reached — abstaining";
-  }
-
+  if (type === "VERIFYING") return event.message || "Checking every material claim against source evidence";
+  if (type === "EVIDENCE_GAP") return event.message || "Evidence failed verification — continue retrieval";
+  if (type === "SUPPORTED") return event.message || "All material claims verified";
+  if (type === "UNKNOWN") return event.message || "Evidence boundary reached — abstaining";
   return event.message || type;
+}
+
+function isKeyEvent(event) {
+  return ["EVIDENCE_REQUIREMENTS", "VERSION_CHECK", "TEMPORAL_CHECK", "OUTDATED_SOURCE", "FOLLOWING_REFERENCE", "VERIFYING", "EVIDENCE_GAP", "SUPPORTED", "UNKNOWN", "CONFLICT"].includes(event.type);
 }
 
 function renderEvents(events = []) {
   timeline.innerHTML = "";
-  events.forEach((event, index) => {
+  const keyEvents = events.filter(isKeyEvent);
+  const shown = keyEvents.length ? keyEvents : events;
+  shown.forEach((event, index) => {
     const item = document.createElement("div");
     item.className = `event event-${String(event.type || "").toLowerCase()}`;
     item.style.opacity = "0";
@@ -106,15 +113,48 @@ function renderEvents(events = []) {
       item.style.transition = "opacity .18s ease, transform .18s ease";
       item.style.opacity = "1";
       item.style.transform = "translateY(0)";
-    }, Math.min(index * 110, 1100));
+    }, Math.min(index * 95, 850));
   });
+}
+
+function renderDecision(data) {
+  const events = data.events || [];
+  const rejected = events.find(e => e.type === "OUTDATED_SOURCE");
+  const validChecks = events.filter(e => e.type === "TEMPORAL_CHECK" && e.payload?.result?.valid);
+  const accepted = validChecks[validChecks.length - 1]?.payload?.result;
+
+  if (rejected && accepted) {
+    const rejectedId = events.find(e => e.type === "TEMPORAL_CHECK" && e.payload?.result?.valid === false)?.payload?.result?.document || "future version";
+    decisionCard.innerHTML = `
+      <div class="decision-title">TEMPORAL RESOLUTION</div>
+      <div class="decision-flow">
+        <span class="decision-reject">× ${escapeHtml(rejectedId)}</span>
+        <span class="decision-reason">not valid yet</span>
+        <span class="decision-arrow">→</span>
+        <span class="decision-accept">✓ ${escapeHtml(accepted.document)}</span>
+        <span class="decision-reason">valid on ${escapeHtml(accepted.date)}</span>
+      </div>`;
+    decisionCard.classList.add("visible");
+    return;
+  }
+
+  if (data.status === "UNKNOWN") {
+    decisionCard.innerHTML = `
+      <div class="decision-title">KNOWLEDGE BOUNDARY</div>
+      <div class="decision-flow"><span class="decision-reject">UNKNOWN</span><span class="decision-reason">no approved evidence → no claim released</span></div>`;
+    decisionCard.classList.add("visible");
+    return;
+  }
+
+  decisionCard.innerHTML = "";
+  decisionCard.classList.remove("visible");
 }
 
 function renderProof(data) {
   const checks = data?.verification?.checks || [];
   if (!checks.length) {
     proof.innerHTML = data.status === "UNKNOWN"
-      ? `<div class="proof-head"><span>KNOWLEDGE BOUNDARY</span><strong>No claim released without evidence</strong></div>`
+      ? `<div class="proof-head"><span>DETERMINISTIC VERIFIER</span><strong>0 unsupported claims released</strong></div>`
       : "";
     return;
   }
@@ -141,9 +181,10 @@ function renderProof(data) {
 
 function renderBaseline(data) {
   baselineAnswer.innerHTML = `<div class="answer">${escapeHtml(data.answer || "No answer")}</div>`;
-  baselineSources.innerHTML = (data.hits || []).map(hit =>
-    `<div class="source-chip">${escapeHtml(hit.title)} · ${escapeHtml(hit.id)} · score ${hit.score ?? "?"}</div>`
+  baselineSources.innerHTML = (data.hits || []).map((hit, i) =>
+    `<div class="source-chip"><strong>#${i + 1}</strong> ${escapeHtml(hit.title)} · ${escapeHtml(hit.id)} · ${hit.score ?? "?"}</div>`
   ).join("");
+  baselineMetrics.innerHTML = `<span>top-${(data.hits || []).length} once</span>${fmtTokens(data.usage) ? `<span>${escapeHtml(fmtTokens(data.usage))}</span>` : ""}`;
   badge(baselineBadge, "ONE-SHOT", "warn");
 }
 
@@ -151,15 +192,36 @@ function renderCompiler(data) {
   compilerAnswer.innerHTML = `<div class="answer">${escapeHtml(data.answer || "No answer")}</div>`;
   const kind = data.status === "SUPPORTED" ? "good" : data.status === "UNKNOWN" ? "warn" : "bad";
   badge(compilerBadge, data.status || "DONE", kind);
+  compilerMetrics.innerHTML = `<span>${data.steps ?? "?"} agent steps</span>${fmtTokens(data.usage) ? `<span>${escapeHtml(fmtTokens(data.usage))}</span>` : ""}`;
+  renderDecision(data);
   renderEvents(data.events || []);
   renderProof(data);
 }
 
+function renderVerdict(baseline, compiler) {
+  const bp = answerPolarity(baseline?.answer || "");
+  const cp = answerPolarity(compiler?.answer || "");
+  verdictStrip.className = "verdict-strip";
+
+  const outdated = (compiler?.events || []).some(e => e.type === "OUTDATED_SOURCE");
+  if (outdated && bp && cp && bp !== cp) {
+    verdictStrip.classList.add("verdict-alert");
+    verdictMain.innerHTML = `<strong>Same corpus. Different evidence process. Opposite answer.</strong> One-shot says ${escapeHtml(bp)}; verified evidence says ${escapeHtml(cp)}.`;
+    verdictMeta.textContent = "The top-ranked policy is real — but not yet effective on the query date.";
+    return;
+  }
+  if (compiler?.status === "UNKNOWN") {
+    verdictStrip.classList.add("verdict-boundary");
+    verdictMain.innerHTML = `<strong>Abstention is a successful result.</strong> The corpus cannot establish the answer.`;
+    verdictMeta.textContent = "No unsupported claim leaves the verifier.";
+    return;
+  }
+  verdictMain.innerHTML = `<strong>Evidence compiled and verified.</strong> ${compiler?.verification?.checks?.filter(c => c.ok).length || 0}/${compiler?.verification?.checks?.length || 0} material claims passed.`;
+  verdictMeta.textContent = outdated ? "A temporally invalid source was rejected before answering." : "Answer released only after evidence checks passed.";
+}
+
 async function runComparison() {
-  const payload = {
-    question: question.value.trim(),
-    query_date: queryDate.value || null,
-  };
+  const payload = { question: question.value.trim(), query_date: queryDate.value || null };
   if (!payload.question) return;
 
   runBtn.disabled = true;
@@ -168,32 +230,42 @@ async function runComparison() {
   loading(baselineAnswer, "Retrieving top-k once…");
   loading(compilerAnswer, "Compiling evidence…");
   baselineSources.innerHTML = "";
+  baselineMetrics.innerHTML = "";
+  compilerMetrics.innerHTML = "";
+  decisionCard.innerHTML = "";
+  decisionCard.classList.remove("visible");
   timeline.innerHTML = "";
   proof.innerHTML = "";
+  verdictMain.textContent = "Running both paths against the same corpus…";
+  verdictMeta.textContent = "";
+  verdictStrip.className = "verdict-strip";
 
-  const opts = {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload),
-  };
-
+  const opts = { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) };
   const [baselineResult, compilerResult] = await Promise.allSettled([
     getJson(`${API}/baseline`, opts),
     getJson(`${API}/compiler`, opts),
   ]);
 
-  if (baselineResult.status === "fulfilled") renderBaseline(baselineResult.value);
-  else {
+  let baselineData = null;
+  let compilerData = null;
+
+  if (baselineResult.status === "fulfilled") {
+    baselineData = baselineResult.value;
+    renderBaseline(baselineData);
+  } else {
     baselineAnswer.innerHTML = `<div class="error">${escapeHtml(baselineResult.reason.message)}</div>`;
     badge(baselineBadge, "ERROR", "bad");
   }
 
-  if (compilerResult.status === "fulfilled") renderCompiler(compilerResult.value);
-  else {
+  if (compilerResult.status === "fulfilled") {
+    compilerData = compilerResult.value;
+    renderCompiler(compilerData);
+  } else {
     compilerAnswer.innerHTML = `<div class="error">${escapeHtml(compilerResult.reason.message)}</div>`;
     badge(compilerBadge, "ERROR", "bad");
   }
 
+  if (baselineData && compilerData) renderVerdict(baselineData, compilerData);
   runBtn.disabled = false;
 }
 
@@ -224,8 +296,6 @@ async function init() {
 }
 
 runBtn.addEventListener("click", runComparison);
-question.addEventListener("keydown", e => {
-  if (e.key === "Enter") runComparison();
-});
+question.addEventListener("keydown", e => { if (e.key === "Enter") runComparison(); });
 
 init();
