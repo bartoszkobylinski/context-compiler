@@ -44,11 +44,7 @@
           <span>Operational decision</span>
           <textarea id="question" rows="3">Can Order #4821 ship today as one parcel via PolarExpress Air Next-Day to Tromsø? If not, determine a compliant alternative shipping plan from the approved corpus.</textarea>
         </label>
-        <label class="field date-field" id="dateField">
-          <span>Decision date</span>
-          <input id="queryDate" type="date" value="2026-09-12" />
-          <div class="date-focus" id="dateFocus"><span>DECISION DATE</span><strong>12 SEP 2026</strong></div>
-        </label>
+        <input id="queryDate" type="hidden" value="2026-09-12" />
         <button id="runBtn" class="run-btn">Compile shipping plan</button>
       </div>
       <div class="presets" id="presets"></div>
