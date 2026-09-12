@@ -17,6 +17,19 @@
       <div class="health" id="health">Checking API…</div>
     </header>
 
+    <section class="demo-thesis">
+      <div class="thesis-mark">01</div>
+      <div>
+        <strong>Similarity is not evidentiary sufficiency.</strong>
+        <span>The right-looking document can still be wrong for the date, authority, or question.</span>
+      </div>
+      <div class="thesis-arrow">→</div>
+      <div>
+        <strong>Compile evidence before answering.</strong>
+        <span>Resolve versions, validity, references, then verify every released claim.</span>
+      </div>
+    </section>
+
     <section class="query-card">
       <div class="query-grid">
         <label class="field grow">
@@ -32,12 +45,18 @@
       <div class="presets" id="presets"></div>
     </section>
 
+    <section class="verdict-strip" id="verdictStrip">
+      <div class="verdict-label">DEMO SIGNAL</div>
+      <div class="verdict-main" id="verdictMain">Run the June case to expose the temporal retrieval trap.</div>
+      <div class="verdict-meta" id="verdictMeta"></div>
+    </section>
+
     <section class="comparison">
       <article class="panel baseline-panel">
         <div class="panel-head">
           <div>
             <div class="panel-kicker">CONTROL</div>
-            <h2>Traditional RAG</h2>
+            <h2>One-shot RAG</h2>
           </div>
           <div class="badge neutral" id="baselineBadge">ONE-SHOT</div>
         </div>
@@ -45,6 +64,7 @@
         <div class="answer-box" id="baselineAnswer">
           <div class="empty">Run a case to see the one-shot answer.</div>
         </div>
+        <div class="run-metrics" id="baselineMetrics"></div>
         <div class="sources" id="baselineSources"></div>
       </article>
 
@@ -60,6 +80,8 @@
         <div class="answer-box" id="compilerAnswer">
           <div class="empty">The agent exposes actions and evidence, not private chain-of-thought.</div>
         </div>
+        <div class="run-metrics" id="compilerMetrics"></div>
+        <div class="decision-card" id="decisionCard"></div>
         <div class="timeline" id="timeline"></div>
         <div class="proof" id="proof"></div>
       </article>
