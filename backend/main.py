@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import os
+import queue
+import threading
+from dataclasses import asdict
 from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .tools import load_corpus
 from .baseline import answer_baseline, retrieve_baseline
 from .agent import run_compiler
 from .challenge import CHALLENGES, make_challenge_candidate, reason_codes
+from .stream_events import set_event_sink, reset_event_sink
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = load_corpus(ROOT / "corpus")
@@ -63,6 +70,37 @@ def compiler(req: AskRequest):
         return run_compiler(CORPUS, req.question, req.query_date)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Compiler failed: {exc}") from exc
+
+
+@app.post("/compiler-stream")
+def compiler_stream(req: AskRequest):
+    """Stream real agent events as NDJSON while the compiler is still running."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+
+    async def stream():
+        events: queue.Queue[dict] = queue.Queue()
+
+        def worker() -> None:
+            token = set_event_sink(lambda event: events.put({"kind": "event", "event": asdict(event)}))
+            try:
+                result = run_compiler(CORPUS, req.question, req.query_date)
+                events.put({"kind": "result", "result": result})
+            except Exception as exc:
+                events.put({"kind": "error", "error": str(exc)})
+            finally:
+                reset_event_sink(token)
+                events.put({"kind": "done"})
+
+        threading.Thread(target=worker, daemon=True).start()
+
+        while True:
+            item = await asyncio.to_thread(events.get)
+            yield json.dumps(item, ensure_ascii=False) + "\n"
+            if item.get("kind") == "done":
+                break
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson")
 
 
 @app.get("/challenge-types")
