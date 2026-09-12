@@ -165,3 +165,25 @@ def test_requirement_closure_rejects_valid_but_unrelated_claim_mapping():
     assert closure_check["ok"] is False
     assert "weight" in closure_check["missing_qualifiers"]
     assert any("requirement not closed" in item for item in result["missing"])
+
+
+def test_claim_may_include_document_identifier_number_not_repeated_in_quote():
+    answer = {
+        "status": "SUPPORTED",
+        "decision": "Order #5902 requires cold-chain handling.",
+        "recommendation": "",
+        "answer": "Order #5902 requires continuous 2–8°C control.",
+        "claims": [
+            {
+                "claim": "Order #5902 requires continuous 2–8°C control.",
+                "source_id": "order-5902-coldchain",
+                "quote": "Contents: one ArcticBio diagnostic research kit, SKU BIO-28, requiring continuous 2–8°C control.",
+            }
+        ],
+        "requirement_closure": [],
+        "plan_candidates": [],
+        "unresolved": [],
+    }
+    result = verify_answer(answer, CORPUS, date(2026, 9, 12))
+    assert result["complete"] is True
+    assert result["checks"][0]["missing_quote_numbers"] == []
