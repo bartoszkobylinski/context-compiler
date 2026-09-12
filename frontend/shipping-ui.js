@@ -2,6 +2,7 @@
   const queryCard = document.querySelector('.query-card');
   const presets = document.getElementById('presets');
   const question = document.getElementById('question');
+  const challengeCard = document.querySelector('.challenge-card');
   if (!queryCard || !presets || !question) return;
 
   const esc = (value = '') => String(value).replace(/[&<>'"]/g, c => ({
@@ -31,7 +32,7 @@
       </div>
       <div class="shipping-path">
         <div class="shipping-label">LIVE DECISION PATH</div>
-        <div class="shipping-live"><span class="shipping-dot"></span><span id="shippingNow">Select “Ship Order #4821”, then run comparison.</span></div>
+        <div class="shipping-live"><span class="shipping-dot"></span><span id="shippingNow">Ready to compile this shipment.</span></div>
         <div class="shipping-events" id="shippingEvents"></div>
       </div>
     </div>
@@ -59,6 +60,19 @@
   function setVisible(show) {
     active = show;
     host.classList.toggle('visible', show);
+    if (challengeCard) challengeCard.style.display = show ? 'none' : '';
+  }
+
+  function resetShipping() {
+    if (!active) return;
+    stateNode.textContent = 'READY';
+    stateNode.className = 'shipping-ops-state';
+    nowNode.textContent = 'Order loaded. Ready to compile an executable shipping decision.';
+    steps = [];
+    renderSteps();
+    resultNode.className = 'shipping-result';
+    resultAnswer.textContent = '';
+    resultFoot.textContent = '';
   }
 
   function friendly(event) {
@@ -72,12 +86,14 @@
       }
       case 'SEARCHING': return input.query ? `Search operational knowledge: “${input.query}”` : 'Search operational knowledge';
       case 'DOCUMENT_FOUND': return `Inspect ${result.title || result.id || input.document_id || 'source'}`;
+      case 'VERSION_CHECK': return 'Resolve which operational rule/version applies';
       case 'FOLLOWING_REFERENCE': return `Follow dependency ${input.document_id || 'source'} → ${input.reference_id || 'rule'}`;
       case 'TEMPORAL_CHECK': {
         const id = result.document || input.document_id || 'source';
         const verdict = result.valid === true ? 'valid now' : result.valid === false ? 'not valid now' : 'checking validity';
         return `Check ${id}: ${verdict}`;
       }
+      case 'OUTDATED_SOURCE': return 'Reject rule that is not valid for this shipment date';
       case 'VERIFYING': return 'Verify every claim in the proposed shipping decision';
       case 'EVIDENCE_GAP': return 'Decision blocked — missing evidence, agent continues';
       case 'SUPPORTED': return 'Evidence sufficient — release verified shipping plan';
@@ -88,7 +104,7 @@
   }
 
   function markFor(event) {
-    if (event.type === 'EVIDENCE_GAP' || event.type === 'UNKNOWN' || event.type === 'CONFLICT') return '×';
+    if (event.type === 'EVIDENCE_GAP' || event.type === 'UNKNOWN' || event.type === 'CONFLICT' || event.type === 'OUTDATED_SOURCE') return '×';
     if (event.type === 'SUPPORTED') return '✓';
     return '→';
   }
@@ -104,18 +120,14 @@
     if (!button) return;
     setTimeout(() => {
       setVisible(isShippingQuestion());
-      if (active) {
-        stateNode.textContent = 'READY';
-        stateNode.className = 'shipping-ops-state';
-        nowNode.textContent = 'Order loaded. Ready to compile an executable shipping decision.';
-        steps = [];
-        renderSteps();
-        resultNode.className = 'shipping-result';
-      }
+      resetShipping();
     }, 0);
   });
 
-  question.addEventListener('input', () => setVisible(isShippingQuestion()));
+  question.addEventListener('input', () => {
+    setVisible(isShippingQuestion());
+    if (active) resetShipping();
+  });
 
   window.addEventListener('context-run-start', () => {
     setVisible(isShippingQuestion());
@@ -159,4 +171,9 @@
       ? `${passed}/${total} material claims verified · operational evidence receipt available below`
       : 'No unsafe action is released when the evidence contract fails.';
   });
+
+  // Shipping is now the primary demo, so activate it immediately when the default
+  // Order #4821 question is present. This does not depend on /demo-cases being fresh.
+  setVisible(isShippingQuestion());
+  resetShipping();
 })();
