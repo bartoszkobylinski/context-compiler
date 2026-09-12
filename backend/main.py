@@ -74,6 +74,40 @@ def baseline(req: AskRequest):
         raise HTTPException(status_code=500, detail=f"Baseline failed: {exc}") from exc
 
 
+@app.post("/baseline-stream")
+def baseline_stream(req: AskRequest):
+    """Stream the real one-shot RAG phases: retrieve once, then answer once."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
+
+    async def stream():
+        events: queue.Queue[dict] = queue.Queue()
+
+        def worker() -> None:
+            try:
+                result = answer_baseline(
+                    CORPUS,
+                    req.question,
+                    req.query_date,
+                    top_k=3,
+                    event_sink=lambda event: events.put({"kind": "event", "event": event}),
+                )
+                events.put({"kind": "result", "result": result})
+            except Exception as exc:
+                events.put({"kind": "error", "error": str(exc)})
+            finally:
+                events.put({"kind": "done"})
+
+        threading.Thread(target=worker, daemon=True).start()
+        while True:
+            item = await asyncio.to_thread(events.get)
+            yield json.dumps(item, ensure_ascii=False) + "\n"
+            if item.get("kind") == "done":
+                break
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson")
+
+
 @app.post("/compiler")
 def compiler(req: AskRequest):
     if not os.getenv("ANTHROPIC_API_KEY"):
@@ -117,13 +151,7 @@ def compiler_stream(req: AskRequest):
 
 @app.post("/certificate/create")
 def certificate_create(req: CertificateCreateRequest):
-    """Create a tamper-evident release receipt for an already verified answer."""
-    bundle = {
-        "status": "SUPPORTED",
-        "answer": req.answer,
-        "claims": req.claims,
-        "unresolved": [],
-    }
+    bundle = {"status": "SUPPORTED", "answer": req.answer, "claims": req.claims, "unresolved": []}
     certificate = create_certificate(bundle, CORPUS, req.query_date)
     if certificate is None:
         raise HTTPException(status_code=400, detail="answer is not eligible for a release receipt")
@@ -132,7 +160,6 @@ def certificate_create(req: CertificateCreateRequest):
 
 @app.post("/certificate/verify")
 def certificate_verify(req: CertificateVerifyRequest):
-    """Verify a release receipt deterministically without an LLM call."""
     try:
         return verify_certificate(req.certificate, CORPUS)
     except Exception as exc:
@@ -146,7 +173,6 @@ def challenge_types():
 
 @app.post("/challenge")
 def challenge(req: ChallengeRequest):
-    """Inject a deterministic bad candidate, prove the verifier blocks it, then rebuild evidence."""
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY is not configured")
     try:
@@ -155,13 +181,7 @@ def challenge(req: ChallengeRequest):
             raise RuntimeError("challenge mutation unexpectedly passed verification")
         challenge_date = date.fromisoformat(injected["challenge_date"])
         repaired = run_compiler(CORPUS, req.question, challenge_date)
-        return {
-            "challenge": {
-                **injected,
-                "reason_codes": reason_codes(injected["verification"]),
-            },
-            "repaired": repaired,
-        }
+        return {"challenge": {**injected, "reason_codes": reason_codes(injected["verification"])}, "repaired": repaired}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -173,7 +193,6 @@ def retrieval_diagnostics(
     question: str = "Can a contractor access customer data from a personal laptop using VPN?",
     top_k: int = 8,
 ):
-    """Offline retrieval inspection: no model call and no API spend."""
     top_k = max(1, min(top_k, 20))
     hits = retrieve_baseline(CORPUS, question, top_k=top_k)
     ids = [hit["id"] for hit in hits]
@@ -195,28 +214,8 @@ def retrieval_diagnostics(
 @app.get("/demo-cases")
 def demo_cases():
     return [
-        {
-            "label": "Before policy change",
-            "question": "Can a contractor access customer data from a personal laptop using VPN?",
-            "query_date": "2025-06-10",
-            "expected": "YES, but only with VPN and full-disk encryption",
-        },
-        {
-            "label": "After policy change",
-            "question": "Can a contractor access customer data from a personal laptop using VPN?",
-            "query_date": "2025-08-10",
-            "expected": "NO, company-managed device required",
-        },
-        {
-            "label": "Multi-hop AI policy",
-            "question": "Can an employee paste customer data into an external AI assistant?",
-            "query_date": "2025-08-10",
-            "expected": "NO unless that AI provider is explicitly approved for Confidential data",
-        },
-        {
-            "label": "Knowledge boundary",
-            "question": "Can a contractor expense their spouse's breakfast?",
-            "query_date": "2025-08-10",
-            "expected": "UNKNOWN",
-        },
+        {"label": "Before policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-06-10", "expected": "YES, but only with VPN and full-disk encryption"},
+        {"label": "After policy change", "question": "Can a contractor access customer data from a personal laptop using VPN?", "query_date": "2025-08-10", "expected": "NO, company-managed device required"},
+        {"label": "Multi-hop AI policy", "question": "Can an employee paste customer data into an external AI assistant?", "query_date": "2025-08-10", "expected": "NO unless that AI provider is explicitly approved for Confidential data"},
+        {"label": "Knowledge boundary", "question": "Can a contractor expense their spouse's breakfast?", "query_date": "2025-08-10", "expected": "UNKNOWN"},
     ]
