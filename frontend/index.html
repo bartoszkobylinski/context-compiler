@@ -20,7 +20,7 @@
       <div>
         <div class="eyebrow">AGENTIC LOOPS — OPERATIONAL AI DEMO</div>
         <h1>Context Compiler</h1>
-        <p class="tagline">RAG tells you the rules. Context Compiler builds a verified plan for what you can actually do.</p>
+        <p class="tagline">Agentic retrieval decides where to search next. Context Compiler decides when there is enough verified evidence to act.</p>
       </div>
       <div class="health" id="health">Checking API…</div>
     </header>
@@ -28,13 +28,13 @@
     <section class="demo-thesis">
       <div class="thesis-mark">01</div>
       <div>
-        <strong>Operational decisions need more than similar text.</strong>
-        <span>An agent must establish product, carrier, packaging, service and timing constraints before acting.</span>
+        <strong>More retrieval does not prove sufficiency.</strong>
+        <span>The agent declares an evidence contract before searching: the concrete conditions that must be established for the decision.</span>
       </div>
       <div class="thesis-arrow">→</div>
       <div>
-        <strong>Compile evidence into an executable plan.</strong>
-        <span>Search, inspect dependencies, verify every material claim, then release or hold the action.</span>
+        <strong>Release only when the contract closes.</strong>
+        <span>Each requirement must map to verified source-backed claims; otherwise the agent searches again, repairs the plan, or holds the action.</span>
       </div>
     </section>
 
@@ -73,7 +73,7 @@
     <section class="verdict-strip" id="verdictStrip">
       <div class="verdict-label">BUSINESS DECISION</div>
       <div class="verdict-main" id="verdictMain">Can this exact order ship as requested — and if not, what verified plan can execute instead?</div>
-      <div class="verdict-meta" id="verdictMeta">Same corpus, two decision processes: one-shot retrieval versus compiled evidence.</div>
+      <div class="verdict-meta" id="verdictMeta">Same corpus, two decision processes: one-shot retrieval versus evidence-contract closure.</div>
     </section>
 
     <section class="comparison">
@@ -101,7 +101,7 @@
           </div>
           <div class="badge neutral" id="compilerBadge">READY</div>
         </div>
-        <div class="flow-mini">requirements → retrieve → resolve → plan → verify → repair → release / hold → receipt → verified dataset</div>
+        <div class="flow-mini">requirements → retrieve → resolve → candidate plans → close contract → verify → repair → release / hold → receipt → dataset</div>
         <div class="answer-box" id="compilerAnswer">
           <div class="empty">The agent exposes operational actions and evidence, not private chain-of-thought.</div>
         </div>
@@ -115,7 +115,7 @@
     </section>
 
     <section class="footer-note">
-      <strong>Business claim:</strong> retrieval can explain a rule; an operational agent needs enough verified evidence to decide whether an action can execute, what must change when it cannot, and why the released plan is safe to act on. Each verified release also produces a receipt that can become a high-quality supervision record for future retrieval, routing and requirement generation.
+      <strong>Business claim:</strong> retrieval can find more documents; the release gate answers a different question: has every required condition for this operational decision been established by verified evidence? Each verified release also produces a receipt that can become a high-quality supervision record for future retrieval, routing and requirement generation.
     </section>
   </main>
   <script src="./repair-ui.js"></script>
