@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .tools import load_corpus
-from .baseline import answer_baseline
+from .baseline import answer_baseline, retrieve_baseline
 from .agent import run_compiler
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +58,30 @@ def compiler(req: AskRequest):
         return run_compiler(CORPUS, req.question, req.query_date)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Compiler failed: {exc}") from exc
+
+
+@app.get("/diagnostics/retrieval")
+def retrieval_diagnostics(
+    question: str = "Can a contractor access customer data from a personal laptop using VPN?",
+    top_k: int = 8,
+):
+    """Offline retrieval inspection: no model call and no API spend."""
+    top_k = max(1, min(top_k, 20))
+    hits = retrieve_baseline(CORPUS, question, top_k=top_k)
+    ids = [hit["id"] for hit in hits]
+    return {
+        "question": question,
+        "hits": hits,
+        "temporal_trap": {
+            "historical_policy": "security-policy-2024",
+            "historical_rank": ids.index("security-policy-2024") + 1 if "security-policy-2024" in ids else None,
+            "current_policy": "security-policy-2025",
+            "current_rank": ids.index("security-policy-2025") + 1 if "security-policy-2025" in ids else None,
+            "historical_missing_from_top3": "security-policy-2024" not in ids[:3],
+            "current_present_in_top3": "security-policy-2025" in ids[:3],
+        },
+        "note": "This endpoint performs retrieval only; it makes no Anthropic API call.",
+    }
 
 
 @app.get("/demo-cases")
