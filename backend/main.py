@@ -8,6 +8,7 @@ import threading
 from dataclasses import asdict
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,7 @@ from .tools import load_corpus
 from .baseline import answer_baseline, retrieve_baseline
 from .agent import run_compiler
 from .challenge import CHALLENGES, make_challenge_candidate, reason_codes
+from .certificate import create_certificate, verify_certificate
 from .stream_events import set_event_sink, reset_event_sink
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +42,16 @@ class AskRequest(BaseModel):
 
 class ChallengeRequest(AskRequest):
     challenge_type: str
+
+
+class CertificateCreateRequest(BaseModel):
+    query_date: date | None = None
+    answer: str
+    claims: list[dict[str, Any]]
+
+
+class CertificateVerifyRequest(BaseModel):
+    certificate: dict[str, Any]
 
 
 @app.get("/health")
@@ -101,6 +113,30 @@ def compiler_stream(req: AskRequest):
                 break
 
     return StreamingResponse(stream(), media_type="application/x-ndjson")
+
+
+@app.post("/certificate/create")
+def certificate_create(req: CertificateCreateRequest):
+    """Create a tamper-evident release receipt for an already verified answer."""
+    bundle = {
+        "status": "SUPPORTED",
+        "answer": req.answer,
+        "claims": req.claims,
+        "unresolved": [],
+    }
+    certificate = create_certificate(bundle, CORPUS, req.query_date)
+    if certificate is None:
+        raise HTTPException(status_code=400, detail="answer is not eligible for a release receipt")
+    return {"certificate": certificate}
+
+
+@app.post("/certificate/verify")
+def certificate_verify(req: CertificateVerifyRequest):
+    """Verify a release receipt deterministically without an LLM call."""
+    try:
+        return verify_certificate(req.certificate, CORPUS)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"certificate verification failed: {exc}") from exc
 
 
 @app.get("/challenge-types")
