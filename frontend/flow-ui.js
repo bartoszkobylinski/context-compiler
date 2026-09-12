@@ -2,6 +2,9 @@
   const baseline = document.querySelector('.baseline-panel .flow-mini');
   const compiler = document.querySelector('.compiler-panel .flow-mini');
   const runBtn = document.getElementById('runBtn');
+  const queryDate = document.getElementById('queryDate');
+  const dateField = document.getElementById('dateField');
+  const dateFocus = document.getElementById('dateFocus');
   if (!baseline || !compiler || !runBtn) return;
 
   const baselineSteps = ['question','top-k chunks','answer'];
@@ -53,13 +56,40 @@
     return seq;
   }
 
+  function formatDate(value) {
+    if (!value) return 'NO DATE';
+    const [y,m,d] = value.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(dt).toUpperCase();
+  }
+
+  let lastDate = queryDate?.value || '';
+  function showDateChange(force = false) {
+    if (!queryDate || !dateField || !dateFocus) return;
+    dateFocus.querySelector('strong').textContent = formatDate(queryDate.value);
+    if (!force && queryDate.value === lastDate) return;
+    lastDate = queryDate.value;
+    dateField.classList.remove('date-changed');
+    void dateField.offsetWidth;
+    dateField.classList.add('date-changed');
+    setTimeout(() => dateField.classList.remove('date-changed'), 1100);
+  }
+
   build(baseline, baselineSteps, 'baseline');
   build(compiler, compilerSteps, 'compiler');
+  showDateChange(true);
+
+  queryDate?.addEventListener('change', () => showDateChange());
+  document.getElementById('presets')?.addEventListener('click', () => setTimeout(() => showDateChange(), 0));
 
   runBtn.addEventListener('click', () => {
     replay(baseline, baselineSteps, 340);
     reset(compiler);
     activate(compiler, 'requirements');
+    if (dateField) {
+      dateField.classList.add('date-running');
+      setTimeout(() => dateField.classList.remove('date-running'), 1800);
+    }
   }, true);
 
   window.addEventListener('context-compiler-result', event => {
