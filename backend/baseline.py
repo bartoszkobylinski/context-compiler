@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import os
+from typing import Callable
 from anthropic import Anthropic
 
 from .tools.search import semantic_search
 from .models import Document
+
+
+BaselineEventSink = Callable[[dict], None] | None
 
 
 def retrieve_baseline(corpus: dict[str, Document], question: str, top_k: int = 3) -> list[dict]:
@@ -34,12 +38,38 @@ def _usage(response) -> dict[str, int]:
     }
 
 
-def answer_baseline(corpus: dict[str, Document], question: str, query_date=None, top_k: int = 3) -> dict:
+def _emit(sink: BaselineEventSink, event_type: str, message: str, payload: dict | None = None) -> None:
+    if sink is not None:
+        sink({"type": event_type, "message": message, "payload": payload or {}})
+
+
+def answer_baseline(
+    corpus: dict[str, Document],
+    question: str,
+    query_date=None,
+    top_k: int = 3,
+    event_sink: BaselineEventSink = None,
+) -> dict:
     """Naive one-shot RAG control: retrieve top-k text once, answer once."""
+    _emit(event_sink, "QUESTION", "Question received")
+    _emit(event_sink, "RETRIEVING", f"Searching once for top-{top_k} similar chunks", {"top_k": top_k})
     context, hits = build_baseline_context(corpus, question, top_k)
+    _emit(
+        event_sink,
+        "TOP_K_READY",
+        f"Selected top-{len(hits)} chunks; retrieval is now finished",
+        {"hits": hits},
+    )
+
     client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-5")
     date_text = query_date.isoformat() if query_date else "not supplied"
+    _emit(
+        event_sink,
+        "ANSWERING",
+        "Sending those chunks to the model — no more retrieval, version checks, or repair",
+        {"model": model},
+    )
 
     response = client.messages.create(
         model=model,
@@ -59,6 +89,7 @@ def answer_baseline(corpus: dict[str, Document], question: str, query_date=None,
     text = "\n".join(
         block.text for block in response.content if getattr(block, "type", None) == "text"
     ).strip()
+    _emit(event_sink, "ANSWER_READY", "One-shot answer returned", {"usage": _usage(response)})
     return {
         "answer": text,
         "hits": hits,
