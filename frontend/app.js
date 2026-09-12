@@ -42,6 +42,49 @@ async function getJson(url, options = {}) {
   return res.json();
 }
 
+async function streamCompiler(payload) {
+  const res = await fetch(`${API}/compiler-stream`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try { detail = (await res.json()).detail || detail; } catch (_) {}
+    throw new Error(detail);
+  }
+  if (!res.body) throw new Error("Streaming response body unavailable");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult = null;
+
+  const handleLine = line => {
+    if (!line.trim()) return;
+    const item = JSON.parse(line);
+    if (item.kind === "event" && item.event) {
+      window.dispatchEvent(new CustomEvent("context-compiler-live-event", { detail: item.event }));
+    } else if (item.kind === "result") {
+      finalResult = item.result;
+    } else if (item.kind === "error") {
+      throw new Error(item.error || "Compiler stream failed");
+    }
+  };
+
+  while (true) {
+    const {value, done} = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), {stream: !done});
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) handleLine(line);
+    if (done) break;
+  }
+  if (buffer.trim()) handleLine(buffer);
+  if (!finalResult) throw new Error("Compiler stream ended without a final result");
+  return finalResult;
+}
+
 function fmtTokens(usage = {}) {
   const input = Number(usage.input_tokens || 0);
   const output = Number(usage.output_tokens || 0);
@@ -186,6 +229,7 @@ function renderBaseline(data) {
   ).join("");
   baselineMetrics.innerHTML = `<span>top-${(data.hits || []).length} once</span>${fmtTokens(data.usage) ? `<span>${escapeHtml(fmtTokens(data.usage))}</span>` : ""}`;
   badge(baselineBadge, "ONE-SHOT", "warn");
+  window.dispatchEvent(new CustomEvent("context-baseline-result", { detail: data }));
 }
 
 function renderCompiler(data) {
@@ -196,6 +240,7 @@ function renderCompiler(data) {
   renderDecision(data);
   renderEvents(data.events || []);
   renderProof(data);
+  window.dispatchEvent(new CustomEvent("context-compiler-result", { detail: data }));
 }
 
 function renderVerdict(baseline, compiler) {
@@ -224,11 +269,12 @@ async function runComparison() {
   const payload = { question: question.value.trim(), query_date: queryDate.value || null };
   if (!payload.question) return;
 
+  window.dispatchEvent(new CustomEvent("context-run-start"));
   runBtn.disabled = true;
   badge(baselineBadge, "RUNNING", "neutral");
   badge(compilerBadge, "RUNNING", "neutral");
   loading(baselineAnswer, "Retrieving top-k once…");
-  loading(compilerAnswer, "Compiling evidence…");
+  loading(compilerAnswer, "Compiling evidence live…");
   baselineSources.innerHTML = "";
   baselineMetrics.innerHTML = "";
   compilerMetrics.innerHTML = "";
@@ -243,7 +289,7 @@ async function runComparison() {
   const opts = { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) };
   const [baselineResult, compilerResult] = await Promise.allSettled([
     getJson(`${API}/baseline`, opts),
-    getJson(`${API}/compiler`, opts),
+    streamCompiler(payload),
   ]);
 
   let baselineData = null;
