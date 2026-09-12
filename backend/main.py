@@ -79,7 +79,8 @@ def challenge(req: ChallengeRequest):
         injected = make_challenge_candidate(CORPUS, req.question, req.query_date, req.challenge_type)
         if not injected["blocked"]:
             raise RuntimeError("challenge mutation unexpectedly passed verification")
-        repaired = run_compiler(CORPUS, req.question, req.query_date)
+        challenge_date = date.fromisoformat(injected["challenge_date"])
+        repaired = run_compiler(CORPUS, req.question, challenge_date)
         return {
             "challenge": {
                 **injected,
