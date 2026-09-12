@@ -17,9 +17,9 @@
   <main class="shell">
     <header class="hero">
       <div>
-        <div class="eyebrow">AGENTIC LOOPS — HACKATHON DEMO</div>
+        <div class="eyebrow">AGENTIC LOOPS — OPERATIONAL AI DEMO</div>
         <h1>Context Compiler</h1>
-        <p class="tagline">Don’t retrieve similar text. Build sufficient evidence.</p>
+        <p class="tagline">RAG tells you the rules. Context Compiler builds a verified plan for what you can actually do.</p>
       </div>
       <div class="health" id="health">Checking API…</div>
     </header>
@@ -27,28 +27,28 @@
     <section class="demo-thesis">
       <div class="thesis-mark">01</div>
       <div>
-        <strong>Similarity is not evidentiary sufficiency.</strong>
-        <span>The right-looking document can still be wrong for the date, authority, or question.</span>
+        <strong>Operational decisions need more than similar text.</strong>
+        <span>An agent must establish product, carrier, packaging, service and timing constraints before acting.</span>
       </div>
       <div class="thesis-arrow">→</div>
       <div>
-        <strong>Compile evidence before answering.</strong>
-        <span>Resolve versions, validity, references, then verify every released claim.</span>
+        <strong>Compile evidence into an executable plan.</strong>
+        <span>Search, inspect dependencies, verify every material claim, then release or hold the action.</span>
       </div>
     </section>
 
     <section class="query-card">
       <div class="query-grid">
         <label class="field grow">
-          <span>Question</span>
-          <input id="question" value="Can a contractor access customer data from a personal laptop using VPN?" />
+          <span>Operational decision</span>
+          <input id="question" value="Can Order #4821 ship today as one parcel via PolarExpress Air Next-Day to Tromsø? If not, determine a compliant alternative shipping plan from the approved corpus." />
         </label>
         <label class="field date-field" id="dateField">
-          <span>Point in time</span>
-          <input id="queryDate" type="date" value="2025-06-10" />
-          <div class="date-focus" id="dateFocus"><span>QUERY DATE</span><strong>10 JUN 2025</strong></div>
+          <span>Decision date</span>
+          <input id="queryDate" type="date" value="2026-09-12" />
+          <div class="date-focus" id="dateFocus"><span>DECISION DATE</span><strong>12 SEP 2026</strong></div>
         </label>
-        <button id="runBtn" class="run-btn">Run comparison</button>
+        <button id="runBtn" class="run-btn">Compile shipping plan</button>
       </div>
       <div class="presets" id="presets"></div>
     </section>
@@ -70,9 +70,9 @@
     </section>
 
     <section class="verdict-strip" id="verdictStrip">
-      <div class="verdict-label">DEMO SIGNAL</div>
-      <div class="verdict-main" id="verdictMain">Run the June case to expose the temporal retrieval trap.</div>
-      <div class="verdict-meta" id="verdictMeta"></div>
+      <div class="verdict-label">BUSINESS DECISION</div>
+      <div class="verdict-main" id="verdictMain">Can this exact order ship as requested — and if not, what verified plan can execute instead?</div>
+      <div class="verdict-meta" id="verdictMeta">Same corpus, two decision processes: one-shot retrieval versus compiled evidence.</div>
     </section>
 
     <section class="comparison">
@@ -84,9 +84,9 @@
           </div>
           <div class="badge neutral" id="baselineBadge">ONE-SHOT</div>
         </div>
-        <div class="flow-mini">question → top-k chunks → answer</div>
+        <div class="flow-mini">order question → top-k chunks → answer</div>
         <div class="answer-box" id="baselineAnswer">
-          <div class="empty">Run a case to see the one-shot answer.</div>
+          <div class="empty">Run the order to see what one-shot retrieval proposes.</div>
         </div>
         <div class="run-metrics" id="baselineMetrics"></div>
         <div class="sources" id="baselineSources"></div>
@@ -95,14 +95,14 @@
       <article class="panel compiler-panel">
         <div class="panel-head">
           <div>
-            <div class="panel-kicker">EVIDENCE LOOP</div>
+            <div class="panel-kicker">OPERATIONAL EVIDENCE LOOP</div>
             <h2>Context Compiler</h2>
           </div>
           <div class="badge neutral" id="compilerBadge">READY</div>
         </div>
-        <div class="flow-mini">requirements → search → inspect → temporal check → verify → repair / answer / unknown</div>
+        <div class="flow-mini">requirements → search → inspect dependencies → verify → re-plan → release / hold</div>
         <div class="answer-box" id="compilerAnswer">
-          <div class="empty">The agent exposes actions and evidence, not private chain-of-thought.</div>
+          <div class="empty">The agent exposes operational actions and evidence, not private chain-of-thought.</div>
         </div>
         <div class="run-metrics" id="compilerMetrics"></div>
         <div class="decision-card" id="decisionCard"></div>
@@ -114,7 +114,7 @@
     </section>
 
     <section class="footer-note">
-      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, lower-authority, or valid at the wrong point in time. A rejected draft sends the agent back into the loop instead of letting unsupported prose escape.
+      <strong>Business claim:</strong> retrieval can explain a rule; an operational agent needs enough verified evidence to decide whether an action can execute, what must change when it cannot, and why the released plan is safe to act on.
     </section>
   </main>
   <script src="./repair-ui.js"></script>
