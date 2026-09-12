@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Context Compiler</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./repair-ui.css" />
 </head>
 <body>
   <main class="shell">
@@ -76,21 +77,23 @@
           </div>
           <div class="badge neutral" id="compilerBadge">READY</div>
         </div>
-        <div class="flow-mini">requirements → search → inspect → temporal check → verify → answer / unknown</div>
+        <div class="flow-mini">requirements → search → inspect → temporal check → verify → repair / answer / unknown</div>
         <div class="answer-box" id="compilerAnswer">
           <div class="empty">The agent exposes actions and evidence, not private chain-of-thought.</div>
         </div>
         <div class="run-metrics" id="compilerMetrics"></div>
         <div class="decision-card" id="decisionCard"></div>
+        <div class="repair-loop" id="repairLoop"></div>
         <div class="timeline" id="timeline"></div>
         <div class="proof" id="proof"></div>
       </article>
     </section>
 
     <section class="footer-note">
-      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, lower-authority, or valid at the wrong point in time.
+      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, lower-authority, or valid at the wrong point in time. A rejected draft sends the agent back into the loop instead of letting unsupported prose escape.
     </section>
   </main>
+  <script src="./repair-ui.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
