@@ -15,6 +15,24 @@ _STOPWORDS = {
     "this", "to", "use", "uses", "using", "was", "were", "when", "with", "yes",
 }
 
+# Decision-critical qualifiers that should not disappear when a requirement is marked
+# RESOLVED. This stays deliberately small and deterministic; it is not an entailment model.
+_REQUIREMENT_QUALIFIERS = {
+    "next",
+    "earliest",
+    "latest",
+    "weight",
+    "size",
+    "dimension",
+    "signature",
+    "insurance",
+    "packaging",
+    "temperature",
+    "weather",
+    "cutoff",
+    "supervisor",
+}
+
 
 def _terms(text: str) -> set[str]:
     tokens = re.findall(r"[a-z0-9]+", text.lower())
@@ -82,6 +100,54 @@ def _validate_claim_indices(indices: Any, claim_checks: list[dict[str, Any]]) ->
     return errors
 
 
+def _requirement_claim_coverage(
+    requirement: str,
+    indices: Any,
+    claim_checks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Deterministically check that mapped claims actually cover the requirement.
+
+    Claim-index validity alone is not enough: a valid but unrelated claim must not close
+    an evidence requirement. We therefore compare the requirement with the union of the
+    mapped verified claim texts and preserve a small set of decision-critical qualifiers
+    such as `next`, `earliest`, `weight`, `signature`, or `temperature`.
+
+    This is intentionally lexical and conservative. It is a release guard, not a semantic
+    theorem prover. A low score causes another retrieval/repair turn or an UNKNOWN result.
+    """
+    if not isinstance(indices, list) or not indices:
+        return {"covered": False, "score": 0.0, "missing_qualifiers": [], "evidence_terms": []}
+
+    evidence_terms: set[str] = set()
+    for claim_index in indices:
+        if not isinstance(claim_index, int) or claim_index < 1 or claim_index > len(claim_checks):
+            continue
+        check = claim_checks[claim_index - 1]
+        if not check.get("ok"):
+            continue
+        evidence_terms |= _terms(str(check.get("claim", "")))
+
+    requirement_terms = _terms(requirement)
+    if not requirement_terms:
+        return {"covered": True, "score": 1.0, "missing_qualifiers": [], "evidence_terms": sorted(evidence_terms)}
+
+    overlap = requirement_terms & evidence_terms
+    score = len(overlap) / max(1, len(requirement_terms))
+
+    required_qualifiers = requirement_terms & _REQUIREMENT_QUALIFIERS
+    missing_qualifiers = sorted(required_qualifiers - evidence_terms)
+
+    # Temporal validity is verified independently on every mapped claim, so words such as
+    # "valid" or an ISO query date are intentionally not hard lexical anchors here.
+    covered = score >= 0.45 and not missing_qualifiers
+    return {
+        "covered": covered,
+        "score": round(score, 3),
+        "missing_qualifiers": missing_qualifiers,
+        "evidence_terms": sorted(evidence_terms),
+    }
+
+
 def _verify_requirement_closure(
     answer: dict[str, Any],
     declared_requirements: list[Any] | None,
@@ -111,6 +177,7 @@ def _verify_requirement_closure(
         errors: list[str] = []
         status = str((row or {}).get("status", "MISSING")).upper()
         claim_indices = (row or {}).get("claim_indices", [])
+        semantic = {"covered": False, "score": 0.0, "missing_qualifiers": [], "evidence_terms": []}
 
         if row is None:
             errors.append("no closure entry")
@@ -118,6 +185,13 @@ def _verify_requirement_closure(
             errors.append(f"status is {status}, expected RESOLVED")
         elif status == "RESOLVED":
             errors.extend(_validate_claim_indices(claim_indices, claim_checks))
+            if not errors:
+                semantic = _requirement_claim_coverage(requirement, claim_indices, claim_checks)
+                if not semantic["covered"]:
+                    detail = f"mapped claims cover only {semantic['score']:.0%} of requirement terms"
+                    if semantic["missing_qualifiers"]:
+                        detail += "; missing decision-critical terms: " + ", ".join(semantic["missing_qualifiers"])
+                    errors.append(detail)
 
         ok = not errors and status == "RESOLVED"
         if ok:
@@ -128,6 +202,8 @@ def _verify_requirement_closure(
             "requirement": requirement,
             "status": status,
             "claim_indices": claim_indices if isinstance(claim_indices, list) else [],
+            "coverage_score": semantic["score"],
+            "missing_qualifiers": semantic["missing_qualifiers"],
             "ok": ok,
             "errors": errors,
         })
