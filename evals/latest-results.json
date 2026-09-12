@@ -8,7 +8,7 @@
     "compiler_pass": true,
     "compiler_fail_reasons": [],
     "baseline": {
-      "answer": "No. Per the Security Policy (security-policy-2025), customer data may only be accessed from company-managed devices—a VPN connection is mandatory for remote access but does not make a personal device eligible for customer-data access. The Remote Access Quickstart (remote-access-quickstart) confirms this by noting that its guidance on using personal laptops via VPN is operational only and does not override the Security Policy's restrictions on accessing restricted or customer data.",
+      "answer": "No — customer data may only be accessed from company-managed devices (security-policy-2025, §4.2). A VPN connection is mandatory for remote access but does not make a personal laptop eligible for customer-data access (security-policy-2025). The Remote Access Quickstart allows contractors to use personal laptops via VPN for general remote access, but explicitly notes that access to customer/restricted data remains subject to the Security Policy (remote-access-quickstart), which overrides this for customer data (classified as Confidential per data-classification-policy).",
       "hits": [
         {
           "id": "security-policy-2025",
@@ -30,7 +30,7 @@
       "mode": "one-shot-top-k-chunks",
       "usage": {
         "input_tokens": 420,
-        "output_tokens": 147
+        "output_tokens": 175
       },
       "limitations": [
         "no version graph",
@@ -41,584 +41,56 @@
     },
     "compiler": {
       "status": "SUPPORTED",
-      "answer": "Yes, as of 2025-06-10 a contractor may access customer (restricted client) data from a personal laptop, but only under strict conditions: the connection must use the corporate VPN tunnel and the device must have whole-disk encryption enabled. This is governed by the Security Policy version in force on that date (effective 2024-02-01 through 2025-06-30), which explicitly allows BYOD access to restricted client records under these conditions. VPN alone is mandatory for any remote connection but is not sufficient by itself to grant access to restricted data — the additional encryption requirement must also be met. Note that a stricter Security Policy takes effect on 2025-07-01 that would eliminate this personal-device allowance, but since it is not yet in effect on the query date, it does not govern this situation.",
+      "answer": "Under the Security Policy in effect on 2025-06-10, a contractor may access customer (restricted client) data from a personal laptop only if the device connects through the corporate VPN tunnel and uses whole-disk encryption; the contractor remains responsible for not storing local copies outside encrypted storage. The Contractor Handbook confirms contractors must comply with the security requirements defined in the current Security Policy when working remotely. Separately, VPN policy notes that using the VPN alone does not grant access to restricted systems or data — the additional device controls (encryption) are required as well.",
       "claims": [
         {
-          "claim": "The Security Policy in effect on 2025-06-10 permits restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+          "claim": "The Security Policy version applicable on 2025-06-10 allows restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
           "source_id": "security-policy-2024",
           "section": "4.2 BYOD access to restricted client records",
           "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption."
         },
         {
-          "claim": "The Contractor Handbook states contractors may access company systems remotely if they comply with all applicable security controls, which are defined in the Security Policy.",
-          "source_id": "contractor-handbook",
-          "section": "3 Remote access",
-          "quote": "Contractors may work remotely and may access company systems when they comply with all applicable security controls."
+          "claim": "Under that policy, the user remains responsible for preventing local copies from being stored outside encrypted storage.",
+          "source_id": "security-policy-2024",
+          "section": "4.2 BYOD access to restricted client records",
+          "quote": "The user remains responsible for preventing local copies from being stored outside encrypted storage."
         },
         {
-          "claim": "VPN use alone does not grant access to restricted systems or data; it is a necessary but not sufficient condition.",
-          "source_id": "vpn-policy",
-          "section": "2.1 Remote connections",
-          "quote": "VPN use does not by itself grant access to restricted systems or data."
-        }
-      ],
-      "unresolved": [],
-      "events": [
-        {
-          "type": "EVIDENCE_REQUIREMENTS",
-          "message": "Need to establish: Policy defining rules for contractor access to customer data • Policy on use of personal devices (BYOD) for accessing corporate/customer data • Policy on VPN usage requirements for remote access • Confirmation of which policy version is valid as of 2025-06-10 • Any explicit statement addressing contractors using personal laptops with VPN",
-          "payload": {
-            "tool": "declare_requirements",
-            "input": {
-              "requirements": [
-                "Policy defining rules for contractor access to customer data",
-                "Policy on use of personal devices (BYOD) for accessing corporate/customer data",
-                "Policy on VPN usage requirements for remote access",
-                "Confirmation of which policy version is valid as of 2025-06-10",
-                "Any explicit statement addressing contractors using personal laptops with VPN"
-              ]
-            },
-            "result": {
-              "requirements": [
-                "Policy defining rules for contractor access to customer data",
-                "Policy on use of personal devices (BYOD) for accessing corporate/customer data",
-                "Policy on VPN usage requirements for remote access",
-                "Confirmation of which policy version is valid as of 2025-06-10",
-                "Any explicit statement addressing contractors using personal laptops with VPN"
-              ],
-              "accepted": true
-            }
-          }
-        },
-        {
-          "type": "SEARCHING",
-          "message": "Search: contractor access customer data personal laptop VPN",
-          "payload": {
-            "tool": "semantic_search",
-            "input": {
-              "query": "contractor access customer data personal laptop VPN"
-            },
-            "result": [
-              {
-                "id": "remote-access-quickstart",
-                "title": "Remote Access Quickstart",
-                "score": 0.443
-              },
-              {
-                "id": "security-policy-2025",
-                "title": "Security Policy",
-                "score": 0.4156
-              },
-              {
-                "id": "data-classification-policy",
-                "title": "Data Classification Policy",
-                "score": 0.3394
-              },
-              {
-                "id": "vpn-policy",
-                "title": "VPN Policy",
-                "score": 0.3257
-              },
-              {
-                "id": "remote-work-faq-2024",
-                "title": "Remote Work FAQ",
-                "score": 0.2525
-              }
-            ]
-          }
-        },
-        {
-          "type": "SEARCHING",
-          "message": "Search: personal device policy BYOD access company data",
-          "payload": {
-            "tool": "semantic_search",
-            "input": {
-              "query": "personal device policy BYOD access company data"
-            },
-            "result": [
-              {
-                "id": "security-policy-2025",
-                "title": "Security Policy",
-                "score": 0.4156
-              },
-              {
-                "id": "data-classification-policy",
-                "title": "Data Classification Policy",
-                "score": 0.4073
-              },
-              {
-                "id": "remote-access-quickstart",
-                "title": "Remote Access Quickstart",
-                "score": 0.3408
-              },
-              {
-                "id": "security-policy-2024",
-                "title": "Security Policy",
-                "score": 0.2584
-              },
-              {
-                "id": "contractor-handbook",
-                "title": "Contractor Handbook",
-                "score": 0.2481
-              }
-            ]
-          }
-        },
-        {
-          "type": "DOCUMENT_FOUND",
-          "message": "Opened Security Policy",
-          "payload": {
-            "tool": "open_document",
-            "input": {
-              "document_id": "security-policy-2025"
-            },
-            "result": {
-              "id": "security-policy-2025",
-              "title": "Security Policy",
-              "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
-              "published_at": "2025-05-20",
-              "valid_from": "2025-07-01",
-              "valid_to": null,
-              "authority": "official",
-              "references": [
-                "vpn-policy",
-                "contractor-handbook"
-              ],
-              "supersedes": "security-policy-2024"
-            }
-          }
-        },
-        {
-          "type": "DOCUMENT_FOUND",
-          "message": "Opened Contractor Handbook",
-          "payload": {
-            "tool": "open_document",
-            "input": {
-              "document_id": "contractor-handbook"
-            },
-            "result": {
-              "id": "contractor-handbook",
-              "title": "Contractor Handbook",
-              "body": "# Contractor Handbook\n\n## 3 Remote access\n\nContractors may work remotely and may access company systems when they comply with all applicable security controls.\n\nSecurity requirements for devices and protected data are defined in the current Security Policy.",
-              "published_at": "2024-01-15",
-              "valid_from": "2024-01-15",
-              "valid_to": null,
-              "authority": "official",
-              "references": [
-                "security-policy-2024",
-                "security-policy-2025"
-              ],
-              "supersedes": null
-            }
-          }
-        },
-        {
-          "type": "DOCUMENT_FOUND",
-          "message": "Opened VPN Policy",
-          "payload": {
-            "tool": "open_document",
-            "input": {
-              "document_id": "vpn-policy"
-            },
-            "result": {
-              "id": "vpn-policy",
-              "title": "VPN Policy",
-              "body": "# VPN Policy\n\n## 2.1 Remote connections\n\nThe corporate VPN is mandatory for all remote connections to internal systems.\n\nVPN use does not by itself grant access to restricted systems or data.",
-              "published_at": "2024-01-01",
-              "valid_from": "2024-01-01",
-              "valid_to": null,
-              "authority": "official",
-              "references": [],
-              "supersedes": null
-            }
-          }
-        },
-        {
-          "type": "VERSION_CHECK",
-          "message": "Versions found: security-policy-2024 → security-policy-2025",
-          "payload": {
-            "tool": "get_versions",
-            "input": {
-              "title": "Security Policy"
-            },
-            "result": [
-              {
-                "id": "security-policy-2024",
-                "title": "Security Policy",
-                "body": "# Security Policy\n\n## 4.2 BYOD access to restricted client records\n\nRestricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.\n\nThe user remains responsible for preventing local copies from being stored outside encrypted storage.",
-                "published_at": "2024-01-10",
-                "valid_from": "2024-02-01",
-                "valid_to": "2025-06-30",
-                "authority": "official",
-                "references": [
-                  "vpn-policy"
-                ],
-                "supersedes": null
-              },
-              {
-                "id": "security-policy-2025",
-                "title": "Security Policy",
-                "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
-                "published_at": "2025-05-20",
-                "valid_from": "2025-07-01",
-                "valid_to": null,
-                "authority": "official",
-                "references": [
-                  "vpn-policy",
-                  "contractor-handbook"
-                ],
-                "supersedes": "security-policy-2024"
-              }
-            ]
-          }
-        },
-        {
-          "type": "TEMPORAL_CHECK",
-          "message": "security-policy-2025 @ 2025-06-10: NOT VALID · effective only from 2025-07-01",
-          "payload": {
-            "tool": "valid_at",
-            "input": {
-              "document_id": "security-policy-2025",
-              "date": "2025-06-10"
-            },
-            "result": {
-              "document": "security-policy-2025",
-              "date": "2025-06-10",
-              "valid": false,
-              "valid_from": "2025-07-01",
-              "valid_to": null,
-              "published_at": "2025-05-20",
-              "reason": "effective only from 2025-07-01"
-            }
-          }
-        },
-        {
-          "type": "OUTDATED_SOURCE",
-          "message": "Rejected security-policy-2025 for this point in time",
-          "payload": {
-            "reason": "effective only from 2025-07-01"
-          }
-        },
-        {
-          "type": "TEMPORAL_CHECK",
-          "message": "security-policy-2024 @ 2025-06-10: VALID · document is valid at query time",
-          "payload": {
-            "tool": "valid_at",
-            "input": {
-              "document_id": "security-policy-2024",
-              "date": "2025-06-10"
-            },
-            "result": {
-              "document": "security-policy-2024",
-              "date": "2025-06-10",
-              "valid": true,
-              "valid_from": "2024-02-01",
-              "valid_to": "2025-06-30",
-              "published_at": "2024-01-10",
-              "reason": "document is valid at query time"
-            }
-          }
-        },
-        {
-          "type": "VERIFYING",
-          "message": "Deterministically verifying 5 material claims",
-          "payload": {
-            "checks": [
-              {
-                "claim": "The 2024 Security Policy (valid 2024-02-01 to 2025-06-30) allows restricted client records to be viewed on a privately owned computer if it uses the corporate VPN tunnel and whole-disk encryption.",
-                "source_id": "security-policy-2024",
-                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "This 2024 policy version was the one valid on the query date 2025-06-10.",
-                "source_id": "security-policy-2024",
-                "quote": "document is valid at query time",
-                "valid_at_query_time": true,
-                "ok": false,
-                "errors": [
-                  "supporting quote is not verbatim in cited source"
-                ]
-              },
-              {
-                "claim": "The Contractor Handbook states contractors may access company systems remotely if they comply with security controls defined in the current Security Policy.",
-                "source_id": "contractor-handbook",
-                "quote": "Contractors may work remotely and may access company systems when they comply with all applicable security controls.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "The corporate VPN is mandatory for all remote connections, but VPN use alone does not grant access to restricted data.",
-                "source_id": "vpn-policy",
-                "quote": "VPN use does not by itself grant access to restricted systems or data.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "A newer Security Policy (effective 2025-07-01, after the query date) would prohibit customer data access from personal devices entirely, even with VPN.",
-                "source_id": "security-policy-2025",
-                "quote": "Customer data may only be accessed from company-managed devices.",
-                "valid_at_query_time": false,
-                "ok": false,
-                "errors": [
-                  "source is not valid at 2025-06-10"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "type": "EVIDENCE_GAP",
-          "message": "Verifier rejected the proposed final answer",
-          "payload": {
-            "missing": [
-              "claim 2: supporting quote is not verbatim in cited source",
-              "claim 5: source is not valid at 2025-06-10"
-            ]
-          }
-        },
-        {
-          "type": "TEMPORAL_CHECK",
-          "message": "contractor-handbook @ 2025-06-10: VALID · document is valid at query time",
-          "payload": {
-            "tool": "valid_at",
-            "input": {
-              "document_id": "contractor-handbook",
-              "date": "2025-06-10"
-            },
-            "result": {
-              "document": "contractor-handbook",
-              "date": "2025-06-10",
-              "valid": true,
-              "valid_from": "2024-01-15",
-              "valid_to": null,
-              "published_at": "2024-01-15",
-              "reason": "document is valid at query time"
-            }
-          }
-        },
-        {
-          "type": "TEMPORAL_CHECK",
-          "message": "vpn-policy @ 2025-06-10: VALID · document is valid at query time",
-          "payload": {
-            "tool": "valid_at",
-            "input": {
-              "document_id": "vpn-policy",
-              "date": "2025-06-10"
-            },
-            "result": {
-              "document": "vpn-policy",
-              "date": "2025-06-10",
-              "valid": true,
-              "valid_from": "2024-01-01",
-              "valid_to": null,
-              "published_at": "2024-01-01",
-              "reason": "document is valid at query time"
-            }
-          }
-        },
-        {
-          "type": "VERIFYING",
-          "message": "Deterministically verifying 3 material claims",
-          "payload": {
-            "checks": [
-              {
-                "claim": "The Security Policy in effect on 2025-06-10 permits restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-                "source_id": "security-policy-2024",
-                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "The Contractor Handbook states contractors may access company systems remotely if they comply with all applicable security controls, which are defined in the Security Policy.",
-                "source_id": "contractor-handbook",
-                "quote": "Contractors may work remotely and may access company systems when they comply with all applicable security controls.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "VPN use alone does not grant access to restricted systems or data; it is a necessary but not sufficient condition.",
-                "source_id": "vpn-policy",
-                "quote": "VPN use does not by itself grant access to restricted systems or data.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              }
-            ]
-          }
-        },
-        {
-          "type": "SUPPORTED",
-          "message": "3/3 material claims passed deterministic verification",
-          "payload": {
-            "checks": [
-              {
-                "claim": "The Security Policy in effect on 2025-06-10 permits restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-                "source_id": "security-policy-2024",
-                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "The Contractor Handbook states contractors may access company systems remotely if they comply with all applicable security controls, which are defined in the Security Policy.",
-                "source_id": "contractor-handbook",
-                "quote": "Contractors may work remotely and may access company systems when they comply with all applicable security controls.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "VPN use alone does not grant access to restricted systems or data; it is a necessary but not sufficient condition.",
-                "source_id": "vpn-policy",
-                "quote": "VPN use does not by itself grant access to restricted systems or data.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              }
-            ]
-          }
-        }
-      ],
-      "verification": {
-        "complete": true,
-        "missing": [],
-        "checks": [
-          {
-            "claim": "The Security Policy in effect on 2025-06-10 permits restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-            "source_id": "security-policy-2024",
-            "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
-            "valid_at_query_time": true,
-            "ok": true,
-            "errors": []
-          },
-          {
-            "claim": "The Contractor Handbook states contractors may access company systems remotely if they comply with all applicable security controls, which are defined in the Security Policy.",
-            "source_id": "contractor-handbook",
-            "quote": "Contractors may work remotely and may access company systems when they comply with all applicable security controls.",
-            "valid_at_query_time": true,
-            "ok": true,
-            "errors": []
-          },
-          {
-            "claim": "VPN use alone does not grant access to restricted systems or data; it is a necessary but not sufficient condition.",
-            "source_id": "vpn-policy",
-            "quote": "VPN use does not by itself grant access to restricted systems or data.",
-            "valid_at_query_time": true,
-            "ok": true,
-            "errors": []
-          }
-        ]
-      },
-      "requirements": [
-        "Policy defining rules for contractor access to customer data",
-        "Policy on use of personal devices (BYOD) for accessing corporate/customer data",
-        "Policy on VPN usage requirements for remote access",
-        "Confirmation of which policy version is valid as of 2025-06-10",
-        "Any explicit statement addressing contractors using personal laptops with VPN"
-      ],
-      "steps": 8,
-      "model": "claude-sonnet-5"
-    }
-  },
-  {
-    "id": "personal_device_august",
-    "question": "Can a contractor access customer data from a personal laptop using VPN?",
-    "query_date": "2025-08-10",
-    "expected": "NO_MANAGED_DEVICE_REQUIRED",
-    "baseline_pass": true,
-    "compiler_pass": true,
-    "compiler_fail_reasons": [],
-    "baseline": {
-      "answer": "No. Per the Security Policy (security-policy-2025), customer data may only be accessed from company-managed devices — a VPN connection is mandatory for remote access but does not make a personal device eligible for customer-data access. The Remote Access Quickstart (remote-access-quickstart) confirms that while contractors may use a personal laptop with VPN for general remote access, access to customer data remains subject to the Security Policy, which excludes personal devices.",
-      "hits": [
-        {
-          "id": "security-policy-2025",
-          "title": "Security Policy",
-          "score": 0.4571
-        },
-        {
-          "id": "remote-access-quickstart",
-          "title": "Remote Access Quickstart",
-          "score": 0.3615
-        },
-        {
-          "id": "data-classification-policy",
-          "title": "Data Classification Policy",
-          "score": 0.24
-        }
-      ],
-      "model": "claude-sonnet-5",
-      "mode": "one-shot-top-k-chunks",
-      "usage": {
-        "input_tokens": 420,
-        "output_tokens": 145
-      },
-      "limitations": [
-        "no version graph",
-        "no temporal validity tool",
-        "no authority graph",
-        "no second retrieval pass"
-      ]
-    },
-    "compiler": {
-      "status": "SUPPORTED",
-      "answer": "No. As of 2025-08-10, the current Security Policy requires that customer data only be accessed from company-managed devices. Using a VPN does not change this — VPN connectivity is mandatory for remote access but does not make a personal (contractor-owned) laptop eligible to access customer data. The Contractor Handbook confirms that contractors must comply with the security requirements defined in the current Security Policy.",
-      "claims": [
-        {
-          "claim": "The current Security Policy (effective 2025-07-01, valid at query date) restricts customer data access to company-managed devices only.",
-          "source_id": "security-policy-2025",
-          "section": "4.2 Customer data access",
-          "quote": "Customer data may only be accessed from company-managed devices."
-        },
-        {
-          "claim": "VPN use does not make a personal device eligible for customer-data access under the current policy.",
-          "source_id": "security-policy-2025",
-          "section": "4.2 Customer data access",
-          "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access."
-        },
-        {
-          "claim": "The VPN Policy itself states that VPN use alone does not grant access to restricted systems or data.",
-          "source_id": "vpn-policy",
-          "section": "2.1 Remote connections",
-          "quote": "VPN use does not by itself grant access to restricted systems or data."
-        },
-        {
-          "claim": "The Contractor Handbook defers device and data security requirements for contractors to the current Security Policy.",
+          "claim": "The Contractor Handbook states contractors may access company systems remotely only when complying with security controls defined in the current Security Policy.",
           "source_id": "contractor-handbook",
           "section": "3 Remote access",
           "quote": "Security requirements for devices and protected data are defined in the current Security Policy."
+        },
+        {
+          "claim": "VPN use alone does not grant access to restricted systems or data.",
+          "source_id": "vpn-policy",
+          "section": "2.1 Remote connections",
+          "quote": "VPN use does not by itself grant access to restricted systems or data."
         }
       ],
       "unresolved": [],
       "events": [
         {
           "type": "EVIDENCE_REQUIREMENTS",
-          "message": "Need to establish: Policy defining rules for contractor access to customer data • Policy on use of personal devices (BYOD) for accessing company/customer data • Policy on VPN access requirements and eligibility (contractors vs employees) • Confirm which version of relevant policy is valid as of 2025-08-10 • Any explicit prohibition or allowance of contractors using personal laptops via VPN to access customer data",
+          "message": "Need to establish: Policy defining rules for contractor access to customer data • Policy on use of personal/BYOD devices for accessing corporate or customer data • Policy on VPN access requirements and who is authorized to use it • Confirm which version of the relevant policy is valid as of 2025-06-10 • Any explicit statement about contractors using personal laptops via VPN",
           "payload": {
             "tool": "declare_requirements",
             "input": {
               "requirements": [
                 "Policy defining rules for contractor access to customer data",
-                "Policy on use of personal devices (BYOD) for accessing company/customer data",
-                "Policy on VPN access requirements and eligibility (contractors vs employees)",
-                "Confirm which version of relevant policy is valid as of 2025-08-10",
-                "Any explicit prohibition or allowance of contractors using personal laptops via VPN to access customer data"
+                "Policy on use of personal/BYOD devices for accessing corporate or customer data",
+                "Policy on VPN access requirements and who is authorized to use it",
+                "Confirm which version of the relevant policy is valid as of 2025-06-10",
+                "Any explicit statement about contractors using personal laptops via VPN"
               ]
             },
             "result": {
               "requirements": [
                 "Policy defining rules for contractor access to customer data",
-                "Policy on use of personal devices (BYOD) for accessing company/customer data",
-                "Policy on VPN access requirements and eligibility (contractors vs employees)",
-                "Confirm which version of relevant policy is valid as of 2025-08-10",
-                "Any explicit prohibition or allowance of contractors using personal laptops via VPN to access customer data"
+                "Policy on use of personal/BYOD devices for accessing corporate or customer data",
+                "Policy on VPN access requirements and who is authorized to use it",
+                "Confirm which version of the relevant policy is valid as of 2025-06-10",
+                "Any explicit statement about contractors using personal laptops via VPN"
               ],
               "accepted": true
             }
@@ -700,6 +172,30 @@
         },
         {
           "type": "DOCUMENT_FOUND",
+          "message": "Opened Security Policy",
+          "payload": {
+            "tool": "open_document",
+            "input": {
+              "document_id": "security-policy-2025"
+            },
+            "result": {
+              "id": "security-policy-2025",
+              "title": "Security Policy",
+              "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
+              "published_at": "2025-05-20",
+              "valid_from": "2025-07-01",
+              "valid_to": null,
+              "authority": "official",
+              "references": [
+                "vpn-policy",
+                "contractor-handbook"
+              ],
+              "supersedes": "security-policy-2024"
+            }
+          }
+        },
+        {
+          "type": "DOCUMENT_FOUND",
           "message": "Opened VPN Policy",
           "payload": {
             "tool": "open_document",
@@ -725,64 +221,18 @@
           "payload": {
             "tool": "open_document",
             "input": {
-              "document_id": "security-policy-2025"
+              "document_id": "security-policy-2024"
             },
             "result": {
-              "id": "security-policy-2025",
+              "id": "security-policy-2024",
               "title": "Security Policy",
-              "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
-              "published_at": "2025-05-20",
-              "valid_from": "2025-07-01",
-              "valid_to": null,
+              "body": "# Security Policy\n\n## 4.2 BYOD access to restricted client records\n\nRestricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.\n\nThe user remains responsible for preventing local copies from being stored outside encrypted storage.",
+              "published_at": "2024-01-10",
+              "valid_from": "2024-02-01",
+              "valid_to": "2025-06-30",
               "authority": "official",
               "references": [
-                "vpn-policy",
-                "contractor-handbook"
-              ],
-              "supersedes": "security-policy-2024"
-            }
-          }
-        },
-        {
-          "type": "TEMPORAL_CHECK",
-          "message": "security-policy-2025 @ 2025-08-10: VALID · document is valid at query time",
-          "payload": {
-            "tool": "valid_at",
-            "input": {
-              "document_id": "security-policy-2025",
-              "date": "2025-08-10"
-            },
-            "result": {
-              "document": "security-policy-2025",
-              "date": "2025-08-10",
-              "valid": true,
-              "valid_from": "2025-07-01",
-              "valid_to": null,
-              "published_at": "2025-05-20",
-              "reason": "document is valid at query time"
-            }
-          }
-        },
-        {
-          "type": "FOLLOWING_REFERENCE",
-          "message": "Following reference: security-policy-2025 → contractor-handbook",
-          "payload": {
-            "tool": "follow_reference",
-            "input": {
-              "document_id": "security-policy-2025",
-              "reference_id": "contractor-handbook"
-            },
-            "result": {
-              "id": "contractor-handbook",
-              "title": "Contractor Handbook",
-              "body": "# Contractor Handbook\n\n## 3 Remote access\n\nContractors may work remotely and may access company systems when they comply with all applicable security controls.\n\nSecurity requirements for devices and protected data are defined in the current Security Policy.",
-              "published_at": "2024-01-15",
-              "valid_from": "2024-01-15",
-              "valid_to": null,
-              "authority": "official",
-              "references": [
-                "security-policy-2024",
-                "security-policy-2025"
+                "vpn-policy"
               ],
               "supersedes": null
             }
@@ -828,36 +278,156 @@
           }
         },
         {
+          "type": "TEMPORAL_CHECK",
+          "message": "security-policy-2024 @ 2025-06-10: VALID · document is valid at query time",
+          "payload": {
+            "tool": "valid_at",
+            "input": {
+              "document_id": "security-policy-2024",
+              "date": "2025-06-10"
+            },
+            "result": {
+              "document": "security-policy-2024",
+              "date": "2025-06-10",
+              "valid": true,
+              "valid_from": "2024-02-01",
+              "valid_to": "2025-06-30",
+              "published_at": "2024-01-10",
+              "reason": "document is valid at query time"
+            }
+          }
+        },
+        {
+          "type": "TEMPORAL_CHECK",
+          "message": "security-policy-2025 @ 2025-06-10: NOT VALID · effective only from 2025-07-01",
+          "payload": {
+            "tool": "valid_at",
+            "input": {
+              "document_id": "security-policy-2025",
+              "date": "2025-06-10"
+            },
+            "result": {
+              "document": "security-policy-2025",
+              "date": "2025-06-10",
+              "valid": false,
+              "valid_from": "2025-07-01",
+              "valid_to": null,
+              "published_at": "2025-05-20",
+              "reason": "effective only from 2025-07-01"
+            }
+          }
+        },
+        {
+          "type": "OUTDATED_SOURCE",
+          "message": "Rejected security-policy-2025 for this point in time",
+          "payload": {
+            "reason": "effective only from 2025-07-01"
+          }
+        },
+        {
+          "type": "SEARCHING",
+          "message": "Search: contractor handbook data access requirements",
+          "payload": {
+            "tool": "semantic_search",
+            "input": {
+              "query": "contractor handbook data access requirements"
+            },
+            "result": [
+              {
+                "id": "contractor-handbook",
+                "title": "Contractor Handbook",
+                "score": 0.4698
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "score": 0.3213
+              },
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "score": 0.2732
+              },
+              {
+                "id": "remote-access-quickstart",
+                "title": "Remote Access Quickstart",
+                "score": 0.2016
+              },
+              {
+                "id": "ai-security-addendum",
+                "title": "AI Security Addendum",
+                "score": 0.1229
+              }
+            ]
+          }
+        },
+        {
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened Contractor Handbook",
+          "payload": {
+            "tool": "open_document",
+            "input": {
+              "document_id": "contractor-handbook"
+            },
+            "result": {
+              "id": "contractor-handbook",
+              "title": "Contractor Handbook",
+              "body": "# Contractor Handbook\n\n## 3 Remote access\n\nContractors may work remotely and may access company systems when they comply with all applicable security controls.\n\nSecurity requirements for devices and protected data are defined in the current Security Policy.",
+              "published_at": "2024-01-15",
+              "valid_from": "2024-01-15",
+              "valid_to": null,
+              "authority": "official",
+              "references": [
+                "security-policy-2024",
+                "security-policy-2025"
+              ],
+              "supersedes": null
+            }
+          }
+        },
+        {
           "type": "VERIFYING",
-          "message": "Deterministically verifying 5 material claims",
+          "message": "Deterministically verifying 6 material claims and answer coverage",
           "payload": {
             "checks": [
               {
-                "claim": "The current Security Policy (effective 2025-07-01, valid at query date) restricts customer data access to company-managed devices only.",
-                "source_id": "security-policy-2025",
-                "quote": "Customer data may only be accessed from company-managed devices.",
+                "claim": "The Security Policy version valid from 2024-02-01 to 2025-06-30 (covering the 2025-06-10 query date) allows restricted client records to be viewed on a privately owned computer if it uses the corporate tunnel and whole-disk encryption.",
+                "source_id": "security-policy-2024",
+                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
                 "valid_at_query_time": true,
                 "ok": true,
                 "errors": []
               },
               {
-                "claim": "VPN use does not make a personal device eligible for customer-data access under the current policy.",
+                "claim": "Under that policy, the user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "source_id": "security-policy-2024",
+                "quote": "The user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "This 2024 Security Policy version is confirmed valid at the query date 2025-06-10.",
+                "source_id": "security-policy-2024",
+                "quote": "valid_from\": \"2024-02-01\", \"valid_to\": \"2025-06-30\"",
+                "valid_at_query_time": true,
+                "ok": false,
+                "errors": [
+                  "supporting quote is not verbatim in cited source"
+                ]
+              },
+              {
+                "claim": "The newer Security Policy (effective 2025-07-01, not yet valid on the query date) states customer data may only be accessed from company-managed devices and that VPN alone does not make a personal device eligible.",
                 "source_id": "security-policy-2025",
                 "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
+                "valid_at_query_time": false,
+                "ok": false,
+                "errors": [
+                  "source is not valid at 2025-06-10"
+                ]
               },
               {
-                "claim": "The VPN Policy itself states that VPN use alone does not grant access to restricted systems or data.",
-                "source_id": "vpn-policy",
-                "quote": "VPN use does not by itself grant access to restricted systems or data.",
-                "valid_at_query_time": true,
-                "ok": true,
-                "errors": []
-              },
-              {
-                "claim": "The Contractor Handbook defers device and data security requirements for contractors to the current Security Policy.",
+                "claim": "The Contractor Handbook states contractors may access company systems remotely only when complying with security controls defined in the current Security Policy.",
                 "source_id": "contractor-handbook",
                 "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
                 "valid_at_query_time": true,
@@ -865,7 +435,631 @@
                 "errors": []
               },
               {
-                "claim": "An earlier (now expired) version of the Security Policy had permitted BYOD access to restricted client records under strict conditions, but this version was only valid through 2025-06-30.",
+                "claim": "The VPN Policy establishes that VPN is mandatory for remote connections but does not itself grant access to restricted systems or data.",
+                "source_id": "vpn-policy",
+                "quote": "VPN use does not by itself grant access to restricted systems or data.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              }
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "As of the query date (2025-06-10), yes — but only under strict conditions.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 0.5
+                },
+                {
+                  "sentence": "The Security Policy version in effect at that time (security-policy-2024, valid 2024-02-01 through 2025-06-30) permits contractors to view restricted client records on a privately owned computer only if the device uses the corporate VPN tunnel and whole-disk encryption, and the user remains responsible for not storing local copies outside encrypted storage.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 0.818
+                },
+                {
+                  "sentence": "The Contractor Handbook confirms contractors must follow the security requirements defined in the current Security Policy.",
+                  "covered": true,
+                  "claim_index": 5,
+                  "score": 0.667
+                },
+                {
+                  "sentence": "Note: a newer Security Policy version becomes effective 2025-07-01 and will prohibit customer data access from personal devices entirely (VPN alone will no longer make a personal device eligible), so this permission will end shortly after the query date.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 0.727
+                }
+              ],
+              "uncovered": []
+            }
+          }
+        },
+        {
+          "type": "EVIDENCE_GAP",
+          "message": "Verifier rejected the proposed final answer",
+          "payload": {
+            "missing": [
+              "claim 3: supporting quote is not verbatim in cited source",
+              "claim 4: source is not valid at 2025-06-10"
+            ]
+          }
+        },
+        {
+          "type": "TEMPORAL_CHECK",
+          "message": "security-policy-2024 @ 2025-06-10: VALID · document is valid at query time",
+          "payload": {
+            "tool": "valid_at",
+            "input": {
+              "document_id": "security-policy-2024",
+              "date": "2025-06-10"
+            },
+            "result": {
+              "document": "security-policy-2024",
+              "date": "2025-06-10",
+              "valid": true,
+              "valid_from": "2024-02-01",
+              "valid_to": "2025-06-30",
+              "published_at": "2024-01-10",
+              "reason": "document is valid at query time"
+            }
+          }
+        },
+        {
+          "type": "VERIFYING",
+          "message": "Deterministically verifying 4 material claims and answer coverage",
+          "payload": {
+            "checks": [
+              {
+                "claim": "The Security Policy version applicable on 2025-06-10 allows restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+                "source_id": "security-policy-2024",
+                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "Under that policy, the user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "source_id": "security-policy-2024",
+                "quote": "The user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "The Contractor Handbook states contractors may access company systems remotely only when complying with security controls defined in the current Security Policy.",
+                "source_id": "contractor-handbook",
+                "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "VPN use alone does not grant access to restricted systems or data.",
+                "source_id": "vpn-policy",
+                "quote": "VPN use does not by itself grant access to restricted systems or data.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              }
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Under the Security Policy in effect on 2025-06-10, a contractor may access customer (restricted client) data from a personal laptop only if the device connects through the corporate VPN tunnel and uses whole-disk encryption; the contractor remains responsible for not storing local copies outside encrypted storage.",
+                  "covered": true,
+                  "claim_index": 2,
+                  "score": 0.769
+                },
+                {
+                  "sentence": "The Contractor Handbook confirms contractors must comply with the security requirements defined in the current Security Policy when working remotely.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.727
+                },
+                {
+                  "sentence": "Separately, VPN policy notes that using the VPN alone does not grant access to restricted systems or data — the additional device controls (encryption) are required as well.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 1.0
+                }
+              ],
+              "uncovered": []
+            }
+          }
+        },
+        {
+          "type": "SUPPORTED",
+          "message": "4/4 material claims passed deterministic verification",
+          "payload": {
+            "checks": [
+              {
+                "claim": "The Security Policy version applicable on 2025-06-10 allows restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+                "source_id": "security-policy-2024",
+                "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "Under that policy, the user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "source_id": "security-policy-2024",
+                "quote": "The user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "The Contractor Handbook states contractors may access company systems remotely only when complying with security controls defined in the current Security Policy.",
+                "source_id": "contractor-handbook",
+                "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "VPN use alone does not grant access to restricted systems or data.",
+                "source_id": "vpn-policy",
+                "quote": "VPN use does not by itself grant access to restricted systems or data.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              }
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Under the Security Policy in effect on 2025-06-10, a contractor may access customer (restricted client) data from a personal laptop only if the device connects through the corporate VPN tunnel and uses whole-disk encryption; the contractor remains responsible for not storing local copies outside encrypted storage.",
+                  "covered": true,
+                  "claim_index": 2,
+                  "score": 0.769
+                },
+                {
+                  "sentence": "The Contractor Handbook confirms contractors must comply with the security requirements defined in the current Security Policy when working remotely.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.727
+                },
+                {
+                  "sentence": "Separately, VPN policy notes that using the VPN alone does not grant access to restricted systems or data — the additional device controls (encryption) are required as well.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 1.0
+                }
+              ],
+              "uncovered": []
+            }
+          }
+        }
+      ],
+      "verification": {
+        "complete": true,
+        "missing": [],
+        "checks": [
+          {
+            "claim": "The Security Policy version applicable on 2025-06-10 allows restricted client records to be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+            "source_id": "security-policy-2024",
+            "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
+            "valid_at_query_time": true,
+            "ok": true,
+            "errors": []
+          },
+          {
+            "claim": "Under that policy, the user remains responsible for preventing local copies from being stored outside encrypted storage.",
+            "source_id": "security-policy-2024",
+            "quote": "The user remains responsible for preventing local copies from being stored outside encrypted storage.",
+            "valid_at_query_time": true,
+            "ok": true,
+            "errors": []
+          },
+          {
+            "claim": "The Contractor Handbook states contractors may access company systems remotely only when complying with security controls defined in the current Security Policy.",
+            "source_id": "contractor-handbook",
+            "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
+            "valid_at_query_time": true,
+            "ok": true,
+            "errors": []
+          },
+          {
+            "claim": "VPN use alone does not grant access to restricted systems or data.",
+            "source_id": "vpn-policy",
+            "quote": "VPN use does not by itself grant access to restricted systems or data.",
+            "valid_at_query_time": true,
+            "ok": true,
+            "errors": []
+          }
+        ],
+        "coverage": {
+          "complete": true,
+          "checks": [
+            {
+              "sentence": "Under the Security Policy in effect on 2025-06-10, a contractor may access customer (restricted client) data from a personal laptop only if the device connects through the corporate VPN tunnel and uses whole-disk encryption; the contractor remains responsible for not storing local copies outside encrypted storage.",
+              "covered": true,
+              "claim_index": 2,
+              "score": 0.769
+            },
+            {
+              "sentence": "The Contractor Handbook confirms contractors must comply with the security requirements defined in the current Security Policy when working remotely.",
+              "covered": true,
+              "claim_index": 3,
+              "score": 0.727
+            },
+            {
+              "sentence": "Separately, VPN policy notes that using the VPN alone does not grant access to restricted systems or data — the additional device controls (encryption) are required as well.",
+              "covered": true,
+              "claim_index": 4,
+              "score": 1.0
+            }
+          ],
+          "uncovered": []
+        }
+      },
+      "requirements": [
+        "Policy defining rules for contractor access to customer data",
+        "Policy on use of personal/BYOD devices for accessing corporate or customer data",
+        "Policy on VPN access requirements and who is authorized to use it",
+        "Confirm which version of the relevant policy is valid as of 2025-06-10",
+        "Any explicit statement about contractors using personal laptops via VPN"
+      ],
+      "steps": 9,
+      "model": "claude-sonnet-5",
+      "usage": {
+        "input_tokens": 36753,
+        "output_tokens": 3751
+      }
+    }
+  },
+  {
+    "id": "personal_device_august",
+    "question": "Can a contractor access customer data from a personal laptop using VPN?",
+    "query_date": "2025-08-10",
+    "expected": "NO_MANAGED_DEVICE_REQUIRED",
+    "baseline_pass": true,
+    "compiler_pass": true,
+    "compiler_fail_reasons": [],
+    "baseline": {
+      "answer": "No. According to the Security Policy (security-policy-2025), customer data may only be accessed from company-managed devices — a VPN connection is mandatory for remote access but does not make a personal device eligible for customer-data access. The Remote Access Quickstart (remote-access-quickstart) confirms that its guidance on using personal laptops with VPN is operational only and remains subject to the Security Policy, which classifies customer data as Confidential (data-classification-policy).",
+      "hits": [
+        {
+          "id": "security-policy-2025",
+          "title": "Security Policy",
+          "score": 0.4571
+        },
+        {
+          "id": "remote-access-quickstart",
+          "title": "Remote Access Quickstart",
+          "score": 0.3615
+        },
+        {
+          "id": "data-classification-policy",
+          "title": "Data Classification Policy",
+          "score": 0.24
+        }
+      ],
+      "model": "claude-sonnet-5",
+      "mode": "one-shot-top-k-chunks",
+      "usage": {
+        "input_tokens": 420,
+        "output_tokens": 150
+      },
+      "limitations": [
+        "no version graph",
+        "no temporal validity tool",
+        "no authority graph",
+        "no second retrieval pass"
+      ]
+    },
+    "compiler": {
+      "status": "SUPPORTED",
+      "answer": "No. Under the currently valid Security Policy (effective 2025-07-01, in force on 2025-08-10), customer data may only be accessed from company-managed devices, and a VPN connection does not make a personal device eligible for customer-data access. The VPN Policy similarly confirms that VPN use alone does not grant access to restricted systems or data. The Contractor Handbook directs contractors to follow the device and data-security requirements defined in the current Security Policy. Therefore, a contractor may not access customer data from a personal laptop even when using VPN.",
+      "claims": [
+        {
+          "claim": "The current Security Policy restricts customer data access to company-managed devices.",
+          "source_id": "security-policy-2025",
+          "section": "4.2 Customer data access",
+          "quote": "Customer data may only be accessed from company-managed devices."
+        },
+        {
+          "claim": "The current Security Policy explicitly states VPN use does not make a personal device eligible for customer-data access.",
+          "source_id": "security-policy-2025",
+          "section": "4.2 Customer data access",
+          "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access."
+        },
+        {
+          "claim": "VPN Policy confirms that VPN connectivity alone does not grant access to restricted systems or data.",
+          "source_id": "vpn-policy",
+          "section": "2.1 Remote connections",
+          "quote": "VPN use does not by itself grant access to restricted systems or data."
+        },
+        {
+          "claim": "The Contractor Handbook requires contractors to comply with the current Security Policy's device and data requirements.",
+          "source_id": "contractor-handbook",
+          "section": "3 Remote access",
+          "quote": "Security requirements for devices and protected data are defined in the current Security Policy."
+        }
+      ],
+      "unresolved": [],
+      "events": [
+        {
+          "type": "EVIDENCE_REQUIREMENTS",
+          "message": "Need to establish: Definition/policy on contractor access to customer data • Policy on use of personal devices (BYOD) for accessing customer data • Policy on VPN access requirements for contractors • Confirm which policy version is valid as of 2025-08-10 • Any explicit prohibition or allowance for personal laptops accessing customer data via VPN",
+          "payload": {
+            "tool": "declare_requirements",
+            "input": {
+              "requirements": [
+                "Definition/policy on contractor access to customer data",
+                "Policy on use of personal devices (BYOD) for accessing customer data",
+                "Policy on VPN access requirements for contractors",
+                "Confirm which policy version is valid as of 2025-08-10",
+                "Any explicit prohibition or allowance for personal laptops accessing customer data via VPN"
+              ]
+            },
+            "result": {
+              "requirements": [
+                "Definition/policy on contractor access to customer data",
+                "Policy on use of personal devices (BYOD) for accessing customer data",
+                "Policy on VPN access requirements for contractors",
+                "Confirm which policy version is valid as of 2025-08-10",
+                "Any explicit prohibition or allowance for personal laptops accessing customer data via VPN"
+              ],
+              "accepted": true
+            }
+          }
+        },
+        {
+          "type": "SEARCHING",
+          "message": "Search: contractor access customer data personal laptop VPN",
+          "payload": {
+            "tool": "semantic_search",
+            "input": {
+              "query": "contractor access customer data personal laptop VPN"
+            },
+            "result": [
+              {
+                "id": "remote-access-quickstart",
+                "title": "Remote Access Quickstart",
+                "score": 0.443
+              },
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "score": 0.4156
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "score": 0.3394
+              },
+              {
+                "id": "vpn-policy",
+                "title": "VPN Policy",
+                "score": 0.3257
+              },
+              {
+                "id": "remote-work-faq-2024",
+                "title": "Remote Work FAQ",
+                "score": 0.2525
+              }
+            ]
+          }
+        },
+        {
+          "type": "SEARCHING",
+          "message": "Search: personal device VPN customer data",
+          "payload": {
+            "tool": "keyword_search",
+            "input": {
+              "query": "personal device VPN customer data"
+            },
+            "result": [
+              {
+                "id": "remote-access-quickstart",
+                "title": "Remote Access Quickstart",
+                "matches": 9
+              },
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "matches": 7
+              },
+              {
+                "id": "vpn-policy",
+                "title": "VPN Policy",
+                "matches": 6
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "matches": 5
+              },
+              {
+                "id": "remote-work-faq-2024",
+                "title": "Remote Work FAQ",
+                "matches": 4
+              }
+            ]
+          }
+        },
+        {
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened VPN Policy",
+          "payload": {
+            "tool": "open_document",
+            "input": {
+              "document_id": "vpn-policy"
+            },
+            "result": {
+              "id": "vpn-policy",
+              "title": "VPN Policy",
+              "body": "# VPN Policy\n\n## 2.1 Remote connections\n\nThe corporate VPN is mandatory for all remote connections to internal systems.\n\nVPN use does not by itself grant access to restricted systems or data.",
+              "published_at": "2024-01-01",
+              "valid_from": "2024-01-01",
+              "valid_to": null,
+              "authority": "official",
+              "references": [],
+              "supersedes": null
+            }
+          }
+        },
+        {
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened Security Policy",
+          "payload": {
+            "tool": "open_document",
+            "input": {
+              "document_id": "security-policy-2025"
+            },
+            "result": {
+              "id": "security-policy-2025",
+              "title": "Security Policy",
+              "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
+              "published_at": "2025-05-20",
+              "valid_from": "2025-07-01",
+              "valid_to": null,
+              "authority": "official",
+              "references": [
+                "vpn-policy",
+                "contractor-handbook"
+              ],
+              "supersedes": "security-policy-2024"
+            }
+          }
+        },
+        {
+          "type": "VERSION_CHECK",
+          "message": "Versions found: security-policy-2024 → security-policy-2025",
+          "payload": {
+            "tool": "get_versions",
+            "input": {
+              "title": "Security Policy"
+            },
+            "result": [
+              {
+                "id": "security-policy-2024",
+                "title": "Security Policy",
+                "body": "# Security Policy\n\n## 4.2 BYOD access to restricted client records\n\nRestricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.\n\nThe user remains responsible for preventing local copies from being stored outside encrypted storage.",
+                "published_at": "2024-01-10",
+                "valid_from": "2024-02-01",
+                "valid_to": "2025-06-30",
+                "authority": "official",
+                "references": [
+                  "vpn-policy"
+                ],
+                "supersedes": null
+              },
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "body": "# Security Policy\n\n## 4.2 Customer data access\n\nCustomer data may only be accessed from company-managed devices.\n\nA VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
+                "published_at": "2025-05-20",
+                "valid_from": "2025-07-01",
+                "valid_to": null,
+                "authority": "official",
+                "references": [
+                  "vpn-policy",
+                  "contractor-handbook"
+                ],
+                "supersedes": "security-policy-2024"
+              }
+            ]
+          }
+        },
+        {
+          "type": "FOLLOWING_REFERENCE",
+          "message": "Following reference: security-policy-2025 → contractor-handbook",
+          "payload": {
+            "tool": "follow_reference",
+            "input": {
+              "document_id": "security-policy-2025",
+              "reference_id": "contractor-handbook"
+            },
+            "result": {
+              "id": "contractor-handbook",
+              "title": "Contractor Handbook",
+              "body": "# Contractor Handbook\n\n## 3 Remote access\n\nContractors may work remotely and may access company systems when they comply with all applicable security controls.\n\nSecurity requirements for devices and protected data are defined in the current Security Policy.",
+              "published_at": "2024-01-15",
+              "valid_from": "2024-01-15",
+              "valid_to": null,
+              "authority": "official",
+              "references": [
+                "security-policy-2024",
+                "security-policy-2025"
+              ],
+              "supersedes": null
+            }
+          }
+        },
+        {
+          "type": "TEMPORAL_CHECK",
+          "message": "security-policy-2025 @ 2025-08-10: VALID · document is valid at query time",
+          "payload": {
+            "tool": "valid_at",
+            "input": {
+              "document_id": "security-policy-2025",
+              "date": "2025-08-10"
+            },
+            "result": {
+              "document": "security-policy-2025",
+              "date": "2025-08-10",
+              "valid": true,
+              "valid_from": "2025-07-01",
+              "valid_to": null,
+              "published_at": "2025-05-20",
+              "reason": "document is valid at query time"
+            }
+          }
+        },
+        {
+          "type": "VERIFYING",
+          "message": "Deterministically verifying 6 material claims and answer coverage",
+          "payload": {
+            "checks": [
+              {
+                "claim": "The current Security Policy (valid from 2025-07-01) restricts customer data access to company-managed devices.",
+                "source_id": "security-policy-2025",
+                "quote": "Customer data may only be accessed from company-managed devices.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "The current Security Policy explicitly states VPN use does not make a personal device eligible for customer-data access.",
+                "source_id": "security-policy-2025",
+                "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "VPN Policy confirms that VPN connectivity alone does not grant access to restricted systems or data.",
+                "source_id": "vpn-policy",
+                "quote": "VPN use does not by itself grant access to restricted systems or data.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "The Contractor Handbook requires contractors to comply with the current Security Policy's device and data requirements.",
+                "source_id": "contractor-handbook",
+                "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
+                "valid_at_query_time": true,
+                "ok": true,
+                "errors": []
+              },
+              {
+                "claim": "This version of the Security Policy is confirmed valid on the query date 2025-08-10.",
+                "source_id": "security-policy-2025",
+                "quote": "valid_from: 2025-07-01",
+                "valid_at_query_time": true,
+                "ok": false,
+                "errors": [
+                  "supporting quote is not verbatim in cited source"
+                ]
+              },
+              {
+                "claim": "The prior (now expired) 2024 Security Policy had allowed viewing restricted client records on a privately owned computer only if using the corporate tunnel and whole-disk encryption, but this version's validity ended 2025-06-30.",
                 "source_id": "security-policy-2024",
                 "quote": "Restricted client records may be viewed on a privately owned computer only when the device uses the corporate tunnel and whole-disk encryption.",
                 "valid_at_query_time": false,
@@ -874,7 +1068,37 @@
                   "source is not valid at 2025-08-10"
                 ]
               }
-            ]
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "As of 2025-08-10, the applicable Security Policy (effective 2025-07-01) states that customer data may only be accessed from company-managed devices, and explicitly clarifies that a VPN connection does not make a personal device eligible for customer-data access.",
+                  "covered": true,
+                  "claim_index": 2,
+                  "score": 0.923
+                },
+                {
+                  "sentence": "The VPN Policy likewise states that VPN use alone does not grant access to restricted systems or data.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.8
+                },
+                {
+                  "sentence": "The Contractor Handbook directs contractors to comply with the current Security Policy's device requirements.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 0.889
+                },
+                {
+                  "sentence": "Therefore, a contractor using a personal laptop over VPN is not permitted to access customer data under current policy (this differs from the prior 2024 version of the Security Policy, which allowed BYOD access to restricted client records under strict conditions, but that version expired on 2025-06-30).",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 0.667
+                }
+              ],
+              "uncovered": []
+            }
           }
         },
         {
@@ -882,7 +1106,8 @@
           "message": "Verifier rejected the proposed final answer",
           "payload": {
             "missing": [
-              "claim 5: source is not valid at 2025-08-10"
+              "claim 5: supporting quote is not verbatim in cited source",
+              "claim 6: source is not valid at 2025-08-10"
             ]
           }
         },
@@ -915,11 +1140,11 @@
         },
         {
           "type": "VERIFYING",
-          "message": "Deterministically verifying 4 material claims",
+          "message": "Deterministically verifying 4 material claims and answer coverage",
           "payload": {
             "checks": [
               {
-                "claim": "The current Security Policy (effective 2025-07-01, valid at query date) restricts customer data access to company-managed devices only.",
+                "claim": "The current Security Policy restricts customer data access to company-managed devices.",
                 "source_id": "security-policy-2025",
                 "quote": "Customer data may only be accessed from company-managed devices.",
                 "valid_at_query_time": true,
@@ -927,7 +1152,7 @@
                 "errors": []
               },
               {
-                "claim": "VPN use does not make a personal device eligible for customer-data access under the current policy.",
+                "claim": "The current Security Policy explicitly states VPN use does not make a personal device eligible for customer-data access.",
                 "source_id": "security-policy-2025",
                 "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
                 "valid_at_query_time": true,
@@ -935,7 +1160,7 @@
                 "errors": []
               },
               {
-                "claim": "The VPN Policy itself states that VPN use alone does not grant access to restricted systems or data.",
+                "claim": "VPN Policy confirms that VPN connectivity alone does not grant access to restricted systems or data.",
                 "source_id": "vpn-policy",
                 "quote": "VPN use does not by itself grant access to restricted systems or data.",
                 "valid_at_query_time": true,
@@ -943,14 +1168,44 @@
                 "errors": []
               },
               {
-                "claim": "The Contractor Handbook defers device and data security requirements for contractors to the current Security Policy.",
+                "claim": "The Contractor Handbook requires contractors to comply with the current Security Policy's device and data requirements.",
                 "source_id": "contractor-handbook",
                 "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
                 "valid_at_query_time": true,
                 "ok": true,
                 "errors": []
               }
-            ]
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Under the currently valid Security Policy (effective 2025-07-01, in force on 2025-08-10), customer data may only be accessed from company-managed devices, and a VPN connection does not make a personal device eligible for customer-data access.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 0.8
+                },
+                {
+                  "sentence": "The VPN Policy similarly confirms that VPN use alone does not grant access to restricted systems or data.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.9
+                },
+                {
+                  "sentence": "The Contractor Handbook directs contractors to follow the device and data-security requirements defined in the current Security Policy.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 0.8
+                },
+                {
+                  "sentence": "Therefore, a contractor may not access customer data from a personal laptop even when using VPN.",
+                  "covered": true,
+                  "claim_index": 2,
+                  "score": 0.556
+                }
+              ],
+              "uncovered": []
+            }
           }
         },
         {
@@ -959,7 +1214,7 @@
           "payload": {
             "checks": [
               {
-                "claim": "The current Security Policy (effective 2025-07-01, valid at query date) restricts customer data access to company-managed devices only.",
+                "claim": "The current Security Policy restricts customer data access to company-managed devices.",
                 "source_id": "security-policy-2025",
                 "quote": "Customer data may only be accessed from company-managed devices.",
                 "valid_at_query_time": true,
@@ -967,7 +1222,7 @@
                 "errors": []
               },
               {
-                "claim": "VPN use does not make a personal device eligible for customer-data access under the current policy.",
+                "claim": "The current Security Policy explicitly states VPN use does not make a personal device eligible for customer-data access.",
                 "source_id": "security-policy-2025",
                 "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
                 "valid_at_query_time": true,
@@ -975,7 +1230,7 @@
                 "errors": []
               },
               {
-                "claim": "The VPN Policy itself states that VPN use alone does not grant access to restricted systems or data.",
+                "claim": "VPN Policy confirms that VPN connectivity alone does not grant access to restricted systems or data.",
                 "source_id": "vpn-policy",
                 "quote": "VPN use does not by itself grant access to restricted systems or data.",
                 "valid_at_query_time": true,
@@ -983,14 +1238,44 @@
                 "errors": []
               },
               {
-                "claim": "The Contractor Handbook defers device and data security requirements for contractors to the current Security Policy.",
+                "claim": "The Contractor Handbook requires contractors to comply with the current Security Policy's device and data requirements.",
                 "source_id": "contractor-handbook",
                 "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
                 "valid_at_query_time": true,
                 "ok": true,
                 "errors": []
               }
-            ]
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Under the currently valid Security Policy (effective 2025-07-01, in force on 2025-08-10), customer data may only be accessed from company-managed devices, and a VPN connection does not make a personal device eligible for customer-data access.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 0.8
+                },
+                {
+                  "sentence": "The VPN Policy similarly confirms that VPN use alone does not grant access to restricted systems or data.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.9
+                },
+                {
+                  "sentence": "The Contractor Handbook directs contractors to follow the device and data-security requirements defined in the current Security Policy.",
+                  "covered": true,
+                  "claim_index": 4,
+                  "score": 0.8
+                },
+                {
+                  "sentence": "Therefore, a contractor may not access customer data from a personal laptop even when using VPN.",
+                  "covered": true,
+                  "claim_index": 2,
+                  "score": 0.556
+                }
+              ],
+              "uncovered": []
+            }
           }
         }
       ],
@@ -999,7 +1284,7 @@
         "missing": [],
         "checks": [
           {
-            "claim": "The current Security Policy (effective 2025-07-01, valid at query date) restricts customer data access to company-managed devices only.",
+            "claim": "The current Security Policy restricts customer data access to company-managed devices.",
             "source_id": "security-policy-2025",
             "quote": "Customer data may only be accessed from company-managed devices.",
             "valid_at_query_time": true,
@@ -1007,7 +1292,7 @@
             "errors": []
           },
           {
-            "claim": "VPN use does not make a personal device eligible for customer-data access under the current policy.",
+            "claim": "The current Security Policy explicitly states VPN use does not make a personal device eligible for customer-data access.",
             "source_id": "security-policy-2025",
             "quote": "A VPN connection is still mandatory for remote access but does not make a personal device eligible for customer-data access.",
             "valid_at_query_time": true,
@@ -1015,7 +1300,7 @@
             "errors": []
           },
           {
-            "claim": "The VPN Policy itself states that VPN use alone does not grant access to restricted systems or data.",
+            "claim": "VPN Policy confirms that VPN connectivity alone does not grant access to restricted systems or data.",
             "source_id": "vpn-policy",
             "quote": "VPN use does not by itself grant access to restricted systems or data.",
             "valid_at_query_time": true,
@@ -1023,24 +1308,58 @@
             "errors": []
           },
           {
-            "claim": "The Contractor Handbook defers device and data security requirements for contractors to the current Security Policy.",
+            "claim": "The Contractor Handbook requires contractors to comply with the current Security Policy's device and data requirements.",
             "source_id": "contractor-handbook",
             "quote": "Security requirements for devices and protected data are defined in the current Security Policy.",
             "valid_at_query_time": true,
             "ok": true,
             "errors": []
           }
-        ]
+        ],
+        "coverage": {
+          "complete": true,
+          "checks": [
+            {
+              "sentence": "Under the currently valid Security Policy (effective 2025-07-01, in force on 2025-08-10), customer data may only be accessed from company-managed devices, and a VPN connection does not make a personal device eligible for customer-data access.",
+              "covered": true,
+              "claim_index": 1,
+              "score": 0.8
+            },
+            {
+              "sentence": "The VPN Policy similarly confirms that VPN use alone does not grant access to restricted systems or data.",
+              "covered": true,
+              "claim_index": 3,
+              "score": 0.9
+            },
+            {
+              "sentence": "The Contractor Handbook directs contractors to follow the device and data-security requirements defined in the current Security Policy.",
+              "covered": true,
+              "claim_index": 4,
+              "score": 0.8
+            },
+            {
+              "sentence": "Therefore, a contractor may not access customer data from a personal laptop even when using VPN.",
+              "covered": true,
+              "claim_index": 2,
+              "score": 0.556
+            }
+          ],
+          "uncovered": []
+        }
       },
       "requirements": [
-        "Policy defining rules for contractor access to customer data",
-        "Policy on use of personal devices (BYOD) for accessing company/customer data",
-        "Policy on VPN access requirements and eligibility (contractors vs employees)",
-        "Confirm which version of relevant policy is valid as of 2025-08-10",
-        "Any explicit prohibition or allowance of contractors using personal laptops via VPN to access customer data"
+        "Definition/policy on contractor access to customer data",
+        "Policy on use of personal devices (BYOD) for accessing customer data",
+        "Policy on VPN access requirements for contractors",
+        "Confirm which policy version is valid as of 2025-08-10",
+        "Any explicit prohibition or allowance for personal laptops accessing customer data via VPN"
       ],
       "steps": 8,
-      "model": "claude-sonnet-5"
+      "model": "claude-sonnet-5",
+      "usage": {
+        "input_tokens": 29789,
+        "output_tokens": 3187
+      }
     }
   },
   {
@@ -1049,12 +1368,10 @@
     "query_date": "2025-08-10",
     "expected": "UNKNOWN",
     "baseline_pass": true,
-    "compiler_pass": false,
-    "compiler_fail_reasons": [
-      "answer shape did not match expected outcome"
-    ],
+    "compiler_pass": true,
+    "compiler_fail_reasons": [],
     "baseline": {
-      "answer": "UNKNOWN — the retrieved chunks contain no information about meal or spouse expense policies.",
+      "answer": "UNKNOWN — the retrieved chunks do not contain any information about expense policies or spouse-related expenses.",
       "hits": [
         {
           "id": "contractor-handbook",
@@ -1076,7 +1393,7 @@
       "mode": "one-shot-top-k-chunks",
       "usage": {
         "input_tokens": 429,
-        "output_tokens": 34
+        "output_tokens": 39
       },
       "limitations": [
         "no version graph",
@@ -1087,34 +1404,33 @@
     },
     "compiler": {
       "status": "UNKNOWN",
-      "answer": "The available corpus does not contain any policy addressing contractor expense reimbursement, meal expenses, or spousal/family expenses, so this question cannot be answered from the approved documents.",
+      "answer": "The corpus does not contain a policy addressing whether a contractor can expense a spouse's breakfast. The Contractor Handbook only covers remote access and security requirements, and the Conference Travel Guide only addresses hotel booking near conference venues; neither mentions meal reimbursement rules or spouse/family expense eligibility. No expense or reimbursement policy document was found in the corpus.",
       "claims": [],
       "unresolved": [
-        "No document in the corpus defines contractor expense/reimbursement rules (e.g., an Expense Policy or T&E Policy) covering meals.",
-        "No document addresses whether spouse/family member expenses can be claimed by contractors.",
-        "The Contractor Handbook only covers remote access and security requirements, not expenses.",
-        "The Conference Travel Guide covers only hotel booking for employees and explicitly states it does not define approval thresholds; it does not mention contractors, meals, or spouses."
+        "No document in the corpus defines contractor expense/reimbursement eligibility rules, meal expense policy, or rules regarding spouse/family member expenses.",
+        "Contractor Handbook only covers remote access and security controls, not expense reimbursement.",
+        "Conference Travel Guide only covers hotel selection near conference venues, not meal or dependent expense rules."
       ],
       "events": [
         {
           "type": "EVIDENCE_REQUIREMENTS",
-          "message": "Need to establish: Definition of eligible expenses for contractors (as opposed to employees) • Whether meal expenses are reimbursable for contractors • Whether expenses for a spouse or non-employee family member are excluded • Confirm which version of the expense policy is valid at query date 2025-08-10",
+          "message": "Need to establish: Definition of eligible expense reimbursement policy applicable to contractors • Whether meal expenses are reimbursable for contractors • Whether spouse/family/companion meal expenses are excluded from reimbursement • Confirm which version of the expense policy is valid at 2025-08-10",
           "payload": {
             "tool": "declare_requirements",
             "input": {
               "requirements": [
-                "Definition of eligible expenses for contractors (as opposed to employees)",
+                "Definition of eligible expense reimbursement policy applicable to contractors",
                 "Whether meal expenses are reimbursable for contractors",
-                "Whether expenses for a spouse or non-employee family member are excluded",
-                "Confirm which version of the expense policy is valid at query date 2025-08-10"
+                "Whether spouse/family/companion meal expenses are excluded from reimbursement",
+                "Confirm which version of the expense policy is valid at 2025-08-10"
               ]
             },
             "result": {
               "requirements": [
-                "Definition of eligible expenses for contractors (as opposed to employees)",
+                "Definition of eligible expense reimbursement policy applicable to contractors",
                 "Whether meal expenses are reimbursable for contractors",
-                "Whether expenses for a spouse or non-employee family member are excluded",
-                "Confirm which version of the expense policy is valid at query date 2025-08-10"
+                "Whether spouse/family/companion meal expenses are excluded from reimbursement",
+                "Confirm which version of the expense policy is valid at 2025-08-10"
               ],
               "accepted": true
             }
@@ -1122,11 +1438,11 @@
         },
         {
           "type": "SEARCHING",
-          "message": "Search: contractor expense policy meals reimbursement",
+          "message": "Search: contractor expense policy meals spouse",
           "payload": {
             "tool": "semantic_search",
             "input": {
-              "query": "contractor expense policy meals reimbursement"
+              "query": "contractor expense policy meals spouse"
             },
             "result": [
               {
@@ -1159,39 +1475,13 @@
         },
         {
           "type": "SEARCHING",
-          "message": "Search: spouse or family member expenses not reimbursable",
+          "message": "Search: spouse meal expense reimbursement",
           "payload": {
-            "tool": "semantic_search",
+            "tool": "keyword_search",
             "input": {
-              "query": "spouse or family member expenses not reimbursable"
+              "query": "spouse meal expense reimbursement"
             },
-            "result": [
-              {
-                "id": "remote-work-faq-2024",
-                "title": "Remote Work FAQ",
-                "score": 0.101
-              },
-              {
-                "id": "vpn-policy",
-                "title": "VPN Policy",
-                "score": 0.093
-              },
-              {
-                "id": "conference-travel-guide",
-                "title": "Conference Travel Guide",
-                "score": 0.0529
-              },
-              {
-                "id": "ai-security-addendum",
-                "title": "AI Security Addendum",
-                "score": 0.0519
-              },
-              {
-                "id": "security-policy-2025",
-                "title": "Security Policy",
-                "score": 0.0462
-              }
-            ]
+            "result": []
           }
         },
         {
@@ -1219,6 +1509,43 @@
           }
         },
         {
+          "type": "SEARCHING",
+          "message": "Search: expense reimbursement policy travel meals",
+          "payload": {
+            "tool": "semantic_search",
+            "input": {
+              "query": "expense reimbursement policy travel meals"
+            },
+            "result": [
+              {
+                "id": "conference-travel-guide",
+                "title": "Conference Travel Guide",
+                "score": 0.1879
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "score": 0.1606
+              },
+              {
+                "id": "vpn-policy",
+                "title": "VPN Policy",
+                "score": 0.1101
+              },
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "score": 0.1093
+              },
+              {
+                "id": "security-policy-2024",
+                "title": "Security Policy",
+                "score": 0.1019
+              }
+            ]
+          }
+        },
+        {
           "type": "DOCUMENT_FOUND",
           "message": "Opened Conference Travel Guide",
           "payload": {
@@ -1241,11 +1568,48 @@
         },
         {
           "type": "SEARCHING",
-          "message": "Search: expense reimbursement policy",
+          "message": "Search: expense policy reimbursable expenses ineligible personal expenses family",
+          "payload": {
+            "tool": "semantic_search",
+            "input": {
+              "query": "expense policy reimbursable expenses ineligible personal expenses family"
+            },
+            "result": [
+              {
+                "id": "security-policy-2025",
+                "title": "Security Policy",
+                "score": 0.1159
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "score": 0.1136
+              },
+              {
+                "id": "remote-access-quickstart",
+                "title": "Remote Access Quickstart",
+                "score": 0.0855
+              },
+              {
+                "id": "vpn-policy",
+                "title": "VPN Policy",
+                "score": 0.0778
+              },
+              {
+                "id": "security-policy-2024",
+                "title": "Security Policy",
+                "score": 0.0721
+              }
+            ]
+          }
+        },
+        {
+          "type": "SEARCHING",
+          "message": "Search: reimbursement policy",
           "payload": {
             "tool": "keyword_search",
             "input": {
-              "query": "expense reimbursement policy"
+              "query": "reimbursement policy"
             },
             "result": [
               {
@@ -1277,58 +1641,15 @@
           }
         },
         {
-          "type": "SEARCHING",
-          "message": "Search: spouse expense",
-          "payload": {
-            "tool": "keyword_search",
-            "input": {
-              "query": "spouse expense"
-            },
-            "result": []
-          }
-        },
-        {
-          "type": "SEARCHING",
-          "message": "Search: travel and expense policy meals per diem",
-          "payload": {
-            "tool": "semantic_search",
-            "input": {
-              "query": "travel and expense policy meals per diem"
-            },
-            "result": [
-              {
-                "id": "conference-travel-guide",
-                "title": "Conference Travel Guide",
-                "score": 0.2117
-              },
-              {
-                "id": "remote-work-faq-2024",
-                "title": "Remote Work FAQ",
-                "score": 0.1515
-              },
-              {
-                "id": "contractor-handbook",
-                "title": "Contractor Handbook",
-                "score": 0.1489
-              },
-              {
-                "id": "data-classification-policy",
-                "title": "Data Classification Policy",
-                "score": 0.1358
-              },
-              {
-                "id": "security-policy-2024",
-                "title": "Security Policy",
-                "score": 0.1292
-              }
-            ]
-          }
-        },
-        {
           "type": "VERIFYING",
-          "message": "Deterministically verifying 0 material claims",
+          "message": "Deterministically verifying 0 material claims and answer coverage",
           "payload": {
-            "checks": []
+            "checks": [],
+            "coverage": {
+              "complete": true,
+              "checks": [],
+              "uncovered": []
+            }
           }
         },
         {
@@ -1340,16 +1661,25 @@
       "verification": {
         "complete": true,
         "missing": [],
-        "checks": []
+        "checks": [],
+        "coverage": {
+          "complete": true,
+          "checks": [],
+          "uncovered": []
+        }
       },
       "requirements": [
-        "Definition of eligible expenses for contractors (as opposed to employees)",
+        "Definition of eligible expense reimbursement policy applicable to contractors",
         "Whether meal expenses are reimbursable for contractors",
-        "Whether expenses for a spouse or non-employee family member are excluded",
-        "Confirm which version of the expense policy is valid at query date 2025-08-10"
+        "Whether spouse/family/companion meal expenses are excluded from reimbursement",
+        "Confirm which version of the expense policy is valid at 2025-08-10"
       ],
-      "steps": 5,
-      "model": "claude-sonnet-5"
+      "steps": 6,
+      "model": "claude-sonnet-5",
+      "usage": {
+        "input_tokens": 16100,
+        "output_tokens": 982
+      }
     }
   },
   {
@@ -1361,7 +1691,7 @@
     "compiler_pass": true,
     "compiler_fail_reasons": [],
     "baseline": {
-      "answer": "No — customer data is classified as Confidential (data-classification-policy), and Confidential data must not be sent to external AI providers unless that provider has been explicitly approved for handling Confidential data (ai-security-addendum). The AI Usage Guidelines permit external AI tools only for ordinary productivity tasks in compliance with the Data Classification Policy (ai-usage-guidelines), so pasting customer data into an external AI assistant is not allowed unless that specific tool has been explicitly approved for Confidential data.",
+      "answer": "No — customer data is classified as **Confidential** (data-classification-policy), and the **AI Security Addendum** states that Confidential data must not be sent to external AI providers unless that provider has been explicitly approved for Confidential data (ai-security-addendum). The **AI Usage Guidelines** permit external AI tools for productivity tasks only if users comply with the Data Classification Policy (ai-usage-guidelines), so pasting customer data into an unapproved external AI assistant would violate policy.",
       "hits": [
         {
           "id": "ai-security-addendum",
@@ -1383,7 +1713,7 @@
       "mode": "one-shot-top-k-chunks",
       "usage": {
         "input_tokens": 319,
-        "output_tokens": 170
+        "output_tokens": 302
       },
       "limitations": [
         "no version graph",
@@ -1394,10 +1724,10 @@
     },
     "compiler": {
       "status": "SUPPORTED",
-      "answer": "No. Customer data is classified as Confidential, and company policy prohibits sending Confidential data to external AI providers unless that specific provider has been explicitly approved for Confidential data. Since general-purpose external AI assistants are typically not on that approved list, an employee should not paste customer data into an external AI assistant unless it has been explicitly approved to handle Confidential data.",
+      "answer": "No, not by default. Customer data is classified as Confidential under the Data Classification Policy, and the AI Security Addendum prohibits sending Confidential data to external AI providers unless that specific provider has been explicitly approved for Confidential data. The AI Usage Guidelines allow external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which customer data pasting would violate absent an approved provider.",
       "claims": [
         {
-          "claim": "Customer data is classified as Confidential under company policy.",
+          "claim": "Customer data is classified as Confidential.",
           "source_id": "data-classification-policy",
           "quote": "Customer data is classified as Confidential."
         },
@@ -1407,7 +1737,7 @@
           "quote": "Confidential data must not be sent to external AI providers unless that provider has been explicitly approved for Confidential data."
         },
         {
-          "claim": "AI Usage Guidelines permit external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which flows into the Confidential data restrictions.",
+          "claim": "External AI tools may be used for ordinary productivity tasks only if users comply with the Data Classification Policy.",
           "source_id": "ai-usage-guidelines",
           "quote": "External AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy."
         }
@@ -1416,25 +1746,23 @@
       "events": [
         {
           "type": "EVIDENCE_REQUIREMENTS",
-          "message": "Need to establish: Existence of a policy governing use of external AI assistants/tools by employees • Whether the policy explicitly addresses pasting/entering customer data into external AI assistants • Confirmation of which version of the policy is valid as of 2025-08-10 • Any related data classification/handling policy defining 'customer data' as restricted/confidential • Any exceptions or approved-tool lists that might permit such use",
+          "message": "Need to establish: Existence of a policy governing use of external AI assistants/tools with company or customer data • Explicit statement on whether pasting customer data into external AI assistants is permitted or prohibited • Confirmation of which policy version is valid as of 2025-08-10 • Any exceptions or approved tools/processes for AI assistant use with customer data",
           "payload": {
             "tool": "declare_requirements",
             "input": {
               "requirements": [
-                "Existence of a policy governing use of external AI assistants/tools by employees",
-                "Whether the policy explicitly addresses pasting/entering customer data into external AI assistants",
-                "Confirmation of which version of the policy is valid as of 2025-08-10",
-                "Any related data classification/handling policy defining 'customer data' as restricted/confidential",
-                "Any exceptions or approved-tool lists that might permit such use"
+                "Existence of a policy governing use of external AI assistants/tools with company or customer data",
+                "Explicit statement on whether pasting customer data into external AI assistants is permitted or prohibited",
+                "Confirmation of which policy version is valid as of 2025-08-10",
+                "Any exceptions or approved tools/processes for AI assistant use with customer data"
               ]
             },
             "result": {
               "requirements": [
-                "Existence of a policy governing use of external AI assistants/tools by employees",
-                "Whether the policy explicitly addresses pasting/entering customer data into external AI assistants",
-                "Confirmation of which version of the policy is valid as of 2025-08-10",
-                "Any related data classification/handling policy defining 'customer data' as restricted/confidential",
-                "Any exceptions or approved-tool lists that might permit such use"
+                "Existence of a policy governing use of external AI assistants/tools with company or customer data",
+                "Explicit statement on whether pasting customer data into external AI assistants is permitted or prohibited",
+                "Confirmation of which policy version is valid as of 2025-08-10",
+                "Any exceptions or approved tools/processes for AI assistant use with customer data"
               ],
               "accepted": true
             }
@@ -1442,55 +1770,50 @@
         },
         {
           "type": "SEARCHING",
-          "message": "Search: employee use of external AI assistants customer data",
+          "message": "Search: external AI assistant customer data policy",
           "payload": {
             "tool": "semantic_search",
             "input": {
-              "query": "employee use of external AI assistants customer data"
+              "query": "external AI assistant customer data policy"
             },
             "result": [
               {
-                "id": "ai-security-addendum",
-                "title": "AI Security Addendum",
-                "score": 0.34
-              },
-              {
                 "id": "data-classification-policy",
                 "title": "Data Classification Policy",
-                "score": 0.3175
+                "score": 0.5133
               },
               {
                 "id": "ai-usage-guidelines",
                 "title": "AI Usage Guidelines",
-                "score": 0.3162
+                "score": 0.426
+              },
+              {
+                "id": "ai-security-addendum",
+                "title": "AI Security Addendum",
+                "score": 0.3925
               },
               {
                 "id": "security-policy-2025",
                 "title": "Security Policy",
-                "score": 0.1728
+                "score": 0.2993
               },
               {
-                "id": "remote-access-quickstart",
-                "title": "Remote Access Quickstart",
-                "score": 0.0956
+                "id": "remote-work-faq-2024",
+                "title": "Remote Work FAQ",
+                "score": 0.1637
               }
             ]
           }
         },
         {
           "type": "SEARCHING",
-          "message": "Search: AI assistant customer data policy",
+          "message": "Search: AI assistant customer data",
           "payload": {
             "tool": "keyword_search",
             "input": {
-              "query": "AI assistant customer data policy"
+              "query": "AI assistant customer data"
             },
             "result": [
-              {
-                "id": "data-classification-policy",
-                "title": "Data Classification Policy",
-                "matches": 7
-              },
               {
                 "id": "ai-security-addendum",
                 "title": "AI Security Addendum",
@@ -1499,92 +1822,91 @@
               {
                 "id": "ai-usage-guidelines",
                 "title": "AI Usage Guidelines",
-                "matches": 6
+                "matches": 5
+              },
+              {
+                "id": "data-classification-policy",
+                "title": "Data Classification Policy",
+                "matches": 5
               },
               {
                 "id": "security-policy-2025",
                 "title": "Security Policy",
-                "matches": 6
+                "matches": 4
               },
               {
                 "id": "remote-access-quickstart",
                 "title": "Remote Access Quickstart",
-                "matches": 3
+                "matches": 2
               }
             ]
           }
         },
         {
-          "type": "VERSION_CHECK",
-          "message": "Versions found: ai-usage-guidelines",
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened AI Usage Guidelines",
           "payload": {
-            "tool": "get_versions",
+            "tool": "open_document",
             "input": {
-              "title": "AI Usage Guidelines"
+              "document_id": "ai-usage-guidelines"
             },
-            "result": [
-              {
-                "id": "ai-usage-guidelines",
-                "title": "AI Usage Guidelines",
-                "body": "# AI Usage Guidelines\n\nExternal AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy.",
-                "published_at": "2025-01-15",
-                "valid_from": "2025-02-01",
-                "valid_to": null,
-                "authority": "guidance",
-                "references": [
-                  "data-classification-policy"
-                ],
-                "supersedes": null
-              }
-            ]
+            "result": {
+              "id": "ai-usage-guidelines",
+              "title": "AI Usage Guidelines",
+              "body": "# AI Usage Guidelines\n\nExternal AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy.",
+              "published_at": "2025-01-15",
+              "valid_from": "2025-02-01",
+              "valid_to": null,
+              "authority": "guidance",
+              "references": [
+                "data-classification-policy"
+              ],
+              "supersedes": null
+            }
           }
         },
         {
-          "type": "VERSION_CHECK",
-          "message": "Versions found: ai-security-addendum",
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened AI Security Addendum",
           "payload": {
-            "tool": "get_versions",
+            "tool": "open_document",
             "input": {
-              "title": "AI Security Addendum"
+              "document_id": "ai-security-addendum"
             },
-            "result": [
-              {
-                "id": "ai-security-addendum",
-                "title": "AI Security Addendum",
-                "body": "# AI Security Addendum\n\nConfidential data must not be sent to external AI providers unless that provider has been explicitly approved for Confidential data.",
-                "published_at": "2025-02-10",
-                "valid_from": "2025-03-01",
-                "valid_to": null,
-                "authority": "official",
-                "references": [],
-                "supersedes": null
-              }
-            ]
+            "result": {
+              "id": "ai-security-addendum",
+              "title": "AI Security Addendum",
+              "body": "# AI Security Addendum\n\nConfidential data must not be sent to external AI providers unless that provider has been explicitly approved for Confidential data.",
+              "published_at": "2025-02-10",
+              "valid_from": "2025-03-01",
+              "valid_to": null,
+              "authority": "official",
+              "references": [],
+              "supersedes": null
+            }
           }
         },
         {
-          "type": "VERSION_CHECK",
-          "message": "Versions found: data-classification-policy",
+          "type": "DOCUMENT_FOUND",
+          "message": "Opened Data Classification Policy",
           "payload": {
-            "tool": "get_versions",
+            "tool": "open_document",
             "input": {
-              "title": "Data Classification Policy"
+              "document_id": "data-classification-policy"
             },
-            "result": [
-              {
-                "id": "data-classification-policy",
-                "title": "Data Classification Policy",
-                "body": "# Data Classification Policy\n\nCustomer data is classified as Confidential.",
-                "published_at": "2025-01-10",
-                "valid_from": "2025-02-01",
-                "valid_to": null,
-                "authority": "official",
-                "references": [
-                  "ai-security-addendum"
-                ],
-                "supersedes": null
-              }
-            ]
+            "result": {
+              "id": "data-classification-policy",
+              "title": "Data Classification Policy",
+              "body": "# Data Classification Policy\n\nCustomer data is classified as Confidential.",
+              "published_at": "2025-01-10",
+              "valid_from": "2025-02-01",
+              "valid_to": null,
+              "authority": "official",
+              "references": [
+                "ai-security-addendum"
+              ],
+              "supersedes": null
+            }
           }
         },
         {
@@ -1649,11 +1971,11 @@
         },
         {
           "type": "VERIFYING",
-          "message": "Deterministically verifying 3 material claims",
+          "message": "Deterministically verifying 3 material claims and answer coverage",
           "payload": {
             "checks": [
               {
-                "claim": "Customer data is classified as Confidential under company policy.",
+                "claim": "Customer data is classified as Confidential.",
                 "source_id": "data-classification-policy",
                 "quote": "Customer data is classified as Confidential.",
                 "valid_at_query_time": true,
@@ -1669,14 +1991,32 @@
                 "errors": []
               },
               {
-                "claim": "AI Usage Guidelines permit external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which flows into the Confidential data restrictions.",
+                "claim": "External AI tools may be used for ordinary productivity tasks only if users comply with the Data Classification Policy.",
                 "source_id": "ai-usage-guidelines",
                 "quote": "External AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy.",
                 "valid_at_query_time": true,
                 "ok": true,
                 "errors": []
               }
-            ]
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Customer data is classified as Confidential under the Data Classification Policy, and the AI Security Addendum prohibits sending Confidential data to external AI providers unless that specific provider has been explicitly approved for Confidential data.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 1.0
+                },
+                {
+                  "sentence": "The AI Usage Guidelines allow external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which customer data pasting would violate absent an approved provider.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.909
+                }
+              ],
+              "uncovered": []
+            }
           }
         },
         {
@@ -1685,7 +2025,7 @@
           "payload": {
             "checks": [
               {
-                "claim": "Customer data is classified as Confidential under company policy.",
+                "claim": "Customer data is classified as Confidential.",
                 "source_id": "data-classification-policy",
                 "quote": "Customer data is classified as Confidential.",
                 "valid_at_query_time": true,
@@ -1701,14 +2041,32 @@
                 "errors": []
               },
               {
-                "claim": "AI Usage Guidelines permit external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which flows into the Confidential data restrictions.",
+                "claim": "External AI tools may be used for ordinary productivity tasks only if users comply with the Data Classification Policy.",
                 "source_id": "ai-usage-guidelines",
                 "quote": "External AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy.",
                 "valid_at_query_time": true,
                 "ok": true,
                 "errors": []
               }
-            ]
+            ],
+            "coverage": {
+              "complete": true,
+              "checks": [
+                {
+                  "sentence": "Customer data is classified as Confidential under the Data Classification Policy, and the AI Security Addendum prohibits sending Confidential data to external AI providers unless that specific provider has been explicitly approved for Confidential data.",
+                  "covered": true,
+                  "claim_index": 1,
+                  "score": 1.0
+                },
+                {
+                  "sentence": "The AI Usage Guidelines allow external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which customer data pasting would violate absent an approved provider.",
+                  "covered": true,
+                  "claim_index": 3,
+                  "score": 0.909
+                }
+              ],
+              "uncovered": []
+            }
           }
         }
       ],
@@ -1717,7 +2075,7 @@
         "missing": [],
         "checks": [
           {
-            "claim": "Customer data is classified as Confidential under company policy.",
+            "claim": "Customer data is classified as Confidential.",
             "source_id": "data-classification-policy",
             "quote": "Customer data is classified as Confidential.",
             "valid_at_query_time": true,
@@ -1733,24 +2091,45 @@
             "errors": []
           },
           {
-            "claim": "AI Usage Guidelines permit external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which flows into the Confidential data restrictions.",
+            "claim": "External AI tools may be used for ordinary productivity tasks only if users comply with the Data Classification Policy.",
             "source_id": "ai-usage-guidelines",
             "quote": "External AI tools may be used for ordinary productivity tasks provided that users comply with the Data Classification Policy.",
             "valid_at_query_time": true,
             "ok": true,
             "errors": []
           }
-        ]
+        ],
+        "coverage": {
+          "complete": true,
+          "checks": [
+            {
+              "sentence": "Customer data is classified as Confidential under the Data Classification Policy, and the AI Security Addendum prohibits sending Confidential data to external AI providers unless that specific provider has been explicitly approved for Confidential data.",
+              "covered": true,
+              "claim_index": 1,
+              "score": 1.0
+            },
+            {
+              "sentence": "The AI Usage Guidelines allow external AI tools for ordinary productivity tasks only if users comply with the Data Classification Policy, which customer data pasting would violate absent an approved provider.",
+              "covered": true,
+              "claim_index": 3,
+              "score": 0.909
+            }
+          ],
+          "uncovered": []
+        }
       },
       "requirements": [
-        "Existence of a policy governing use of external AI assistants/tools by employees",
-        "Whether the policy explicitly addresses pasting/entering customer data into external AI assistants",
-        "Confirmation of which version of the policy is valid as of 2025-08-10",
-        "Any related data classification/handling policy defining 'customer data' as restricted/confidential",
-        "Any exceptions or approved-tool lists that might permit such use"
+        "Existence of a policy governing use of external AI assistants/tools with company or customer data",
+        "Explicit statement on whether pasting customer data into external AI assistants is permitted or prohibited",
+        "Confirmation of which policy version is valid as of 2025-08-10",
+        "Any exceptions or approved tools/processes for AI assistant use with customer data"
       ],
-      "steps": 5,
-      "model": "claude-sonnet-5"
+      "steps": 6,
+      "model": "claude-sonnet-5",
+      "usage": {
+        "input_tokens": 16803,
+        "output_tokens": 1262
+      }
     }
   }
 ]
