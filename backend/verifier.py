@@ -15,22 +15,9 @@ _STOPWORDS = {
     "this", "to", "use", "uses", "using", "was", "were", "when", "with", "yes",
 }
 
-# Decision-critical qualifiers that should not disappear when a requirement is marked
-# RESOLVED. This stays deliberately small and deterministic; it is not an entailment model.
 _REQUIREMENT_QUALIFIERS = {
-    "next",
-    "earliest",
-    "latest",
-    "weight",
-    "size",
-    "dimension",
-    "signature",
-    "insurance",
-    "packaging",
-    "temperature",
-    "weather",
-    "cutoff",
-    "supervisor",
+    "next", "earliest", "latest", "weight", "size", "dimension", "signature",
+    "insurance", "packaging", "temperature", "weather", "cutoff", "supervisor",
 }
 
 
@@ -46,6 +33,31 @@ def _terms(text: str) -> set[str]:
                 break
         normalized.add(token)
     return normalized
+
+
+def _numbers(text: str) -> set[str]:
+    return set(re.findall(r"\b\d+(?:\.\d+)?\b", text))
+
+
+def _claim_quote_coverage(claim_text: str, quote: str) -> dict[str, Any]:
+    """Guard against a claim smuggling in facts not present in its cited quote.
+
+    Quotes must still match verbatim in the source. This additional check makes sure the
+    model does not append a derived conclusion (for example a transit-time calculation)
+    to an otherwise valid quoted rule and present the whole sentence as source-backed.
+    """
+    claim_terms = _terms(claim_text)
+    quote_terms = _terms(quote)
+    if not claim_terms:
+        return {"covered": True, "score": 1.0, "missing_numbers": []}
+
+    score = len(claim_terms & quote_terms) / max(1, len(claim_terms))
+    missing_numbers = sorted(_numbers(claim_text) - _numbers(quote))
+    return {
+        "covered": score >= 0.45 and not missing_numbers,
+        "score": round(score, 3),
+        "missing_numbers": missing_numbers,
+    }
 
 
 def _material_sentences(text: str) -> list[str]:
@@ -105,16 +117,6 @@ def _requirement_claim_coverage(
     indices: Any,
     claim_checks: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Deterministically check that mapped claims actually cover the requirement.
-
-    Claim-index validity alone is not enough: a valid but unrelated claim must not close
-    an evidence requirement. We therefore compare the requirement with the union of the
-    mapped verified claim texts and preserve a small set of decision-critical qualifiers
-    such as `next`, `earliest`, `weight`, `signature`, or `temperature`.
-
-    This is intentionally lexical and conservative. It is a release guard, not a semantic
-    theorem prover. A low score causes another retrieval/repair turn or an UNKNOWN result.
-    """
     if not isinstance(indices, list) or not indices:
         return {"covered": False, "score": 0.0, "missing_qualifiers": [], "evidence_terms": []}
 
@@ -133,12 +135,8 @@ def _requirement_claim_coverage(
 
     overlap = requirement_terms & evidence_terms
     score = len(overlap) / max(1, len(requirement_terms))
-
     required_qualifiers = requirement_terms & _REQUIREMENT_QUALIFIERS
     missing_qualifiers = sorted(required_qualifiers - evidence_terms)
-
-    # Temporal validity is verified independently on every mapped claim, so words such as
-    # "valid" or an ISO query date are intentionally not hard lexical anchors here.
     covered = score >= 0.45 and not missing_qualifiers
     return {
         "covered": covered,
@@ -317,6 +315,7 @@ def verify_answer(
         source_id = str(claim.get("source_id", "")).strip()
         quote = str(claim.get("quote", "")).strip()
         errors: list[str] = []
+        quote_coverage = {"covered": False, "score": 0.0, "missing_numbers": []}
         if not claim_text:
             errors.append("claim text missing")
         doc = corpus.get(source_id) if source_id else None
@@ -327,12 +326,21 @@ def verify_answer(
                 errors.append("supporting quote missing")
             elif quote not in doc.body:
                 errors.append("supporting quote is not verbatim in cited source")
+            else:
+                quote_coverage = _claim_quote_coverage(claim_text, quote)
+                if not quote_coverage["covered"]:
+                    detail = f"claim overreaches supporting quote ({quote_coverage['score']:.0%} lexical coverage)"
+                    if quote_coverage["missing_numbers"]:
+                        detail += "; numbers absent from quote: " + ", ".join(quote_coverage["missing_numbers"])
+                    errors.append(detail)
             if query_date is not None and not valid_at(doc, query_date):
                 errors.append(f"source is not valid at {query_date.isoformat()}")
         checks.append({
             "claim": claim_text,
             "source_id": source_id,
             "quote": quote,
+            "quote_coverage_score": quote_coverage["score"],
+            "missing_quote_numbers": quote_coverage["missing_numbers"],
             "valid_at_query_time": None if doc is None or query_date is None else valid_at(doc, query_date),
             "ok": not errors,
             "errors": errors,
