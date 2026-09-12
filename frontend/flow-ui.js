@@ -2,20 +2,16 @@
   const baseline = document.querySelector('.baseline-panel .flow-mini');
   const compiler = document.querySelector('.compiler-panel .flow-mini');
   const runBtn = document.getElementById('runBtn');
-  const queryDate = document.getElementById('queryDate');
-  const dateField = document.getElementById('dateField');
-  const dateFocus = document.getElementById('dateFocus');
   if (!baseline || !compiler || !runBtn) return;
 
-  const baselineSteps = ['question','top-k chunks','answer'];
-  const compilerSteps = ['requirements','search','inspect','temporal check','verify','repair','answer','unknown'];
+  const baselineSteps = ['question','retrieve 1','identify gap','retrieve 2','answer'];
+  const compilerSteps = ['requirements','retrieve','resolve','candidate plans','close contract','verify','repair','release / hold','receipt','dataset'];
   let liveCompilerEvents = false;
-  let baselineTimer = null;
 
   function build(host, steps, kind) {
     host.classList.add('flow-track','idle');
     host.dataset.kind = kind;
-    host.innerHTML = steps.map((step, i) => `${i ? '<span class="flow-arrow">→</span>' : ''}<span class="flow-step flow-${step.replace(/\s+/g,'-')}" data-step="${step}">${step}</span>`).join('');
+    host.innerHTML = steps.map((step, i) => `${i ? '<span class="flow-arrow">→</span>' : ''}<span class="flow-step flow-${step.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')}" data-step="${step}">${step}</span>`).join('');
   }
 
   function reset(host) {
@@ -38,94 +34,78 @@
     target.classList.add('active');
   }
 
-  function replay(host, sequence, delay = 260) {
+  function replay(host, sequence, delay = 220) {
     reset(host);
     host.classList.remove('idle');
     host.classList.add('replaying');
     sequence.forEach((step, i) => setTimeout(() => activate(host, step), i * delay));
   }
 
-  function stepForEvent(event = {}) {
+  function compilerStepForEvent(event = {}) {
     if (event.type === 'EVIDENCE_REQUIREMENTS') return 'requirements';
-    if (event.type === 'SEARCHING') return 'search';
-    if (['DOCUMENT_FOUND','FOLLOWING_REFERENCE','VERSION_CHECK'].includes(event.type)) return 'inspect';
-    if (['TEMPORAL_CHECK','OUTDATED_SOURCE'].includes(event.type)) return 'temporal check';
+    if (['SEARCHING','DOCUMENT_FOUND'].includes(event.type)) return 'retrieve';
+    if (['FOLLOWING_REFERENCE','VERSION_CHECK','TEMPORAL_CHECK','OUTDATED_SOURCE'].includes(event.type)) return 'resolve';
+    if (event.type === 'REQUIREMENTS_CLOSED') return 'close contract';
     if (event.type === 'VERIFYING') return 'verify';
     if (event.type === 'EVIDENCE_GAP') return 'repair';
-    if (event.type === 'UNKNOWN') return 'unknown';
-    if (['SUPPORTED','CONFLICT'].includes(event.type)) return 'answer';
+    if (['SUPPORTED','UNKNOWN','CONFLICT'].includes(event.type)) return 'release / hold';
     return null;
   }
 
   function compilerSequence(data) {
     const seq = [];
     const push = step => { if (step && seq[seq.length - 1] !== step) seq.push(step); };
-    for (const event of data.events || []) push(stepForEvent(event));
-    if (!seq.length) return data.status === 'UNKNOWN' ? ['requirements','unknown'] : ['requirements','answer'];
-    if (data.status === 'SUPPORTED' && seq[seq.length - 1] !== 'answer') push('answer');
-    if (data.status === 'UNKNOWN' && seq[seq.length - 1] !== 'unknown') push('unknown');
+    for (const event of data.events || []) push(compilerStepForEvent(event));
+    if (Array.isArray(data.plan_candidates) && data.plan_candidates.length) {
+      const closeIndex = seq.indexOf('close contract');
+      if (closeIndex >= 0 && !seq.includes('candidate plans')) seq.splice(closeIndex, 0, 'candidate plans');
+    }
+    if (!seq.length) return ['requirements','release / hold'];
+    if (seq[seq.length - 1] !== 'release / hold') push('release / hold');
     return seq;
-  }
-
-  function formatDate(value) {
-    if (!value) return 'NO DATE';
-    const [y,m,d] = value.split('-').map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(dt).toUpperCase();
-  }
-
-  let lastDate = queryDate?.value || '';
-  function showDateChange(force = false) {
-    if (!queryDate || !dateField || !dateFocus) return;
-    dateFocus.querySelector('strong').textContent = formatDate(queryDate.value);
-    if (!force && queryDate.value === lastDate) return;
-    lastDate = queryDate.value;
-    dateField.classList.remove('date-changed');
-    void dateField.offsetWidth;
-    dateField.classList.add('date-changed');
-    setTimeout(() => dateField.classList.remove('date-changed'), 1100);
   }
 
   build(baseline, baselineSteps, 'baseline');
   build(compiler, compilerSteps, 'compiler');
-  showDateChange(true);
-
-  queryDate?.addEventListener('change', () => showDateChange());
-  document.getElementById('presets')?.addEventListener('click', () => setTimeout(() => showDateChange(), 0));
 
   window.addEventListener('context-run-start', () => {
     liveCompilerEvents = false;
-    if (baselineTimer) clearTimeout(baselineTimer);
     reset(baseline);
     reset(compiler);
     activate(baseline, 'question');
     activate(compiler, 'requirements');
-    baselineTimer = setTimeout(() => activate(baseline, 'top-k chunks'), 140);
-    if (dateField) {
-      dateField.classList.add('date-running');
-      setTimeout(() => dateField.classList.remove('date-running'), 1800);
-    }
   });
 
-  window.addEventListener('context-baseline-result', () => {
-    if (baselineTimer) clearTimeout(baselineTimer);
-    activate(baseline, 'answer');
+  window.addEventListener('context-baseline-live-event', event => {
+    const e = event.detail || {};
+    if (e.type === 'QUESTION') activate(baseline, 'question');
+    else if (e.type === 'RETRIEVING' && e.payload?.pass === 1) activate(baseline, 'retrieve 1');
+    else if (e.type === 'GAP_QUERY') activate(baseline, 'identify gap');
+    else if (e.type === 'RETRIEVING' && e.payload?.pass === 2) activate(baseline, 'retrieve 2');
+    else if (e.type === 'ANSWERING') activate(baseline, 'answer');
   });
+
+  window.addEventListener('context-baseline-result', () => activate(baseline, 'answer'));
 
   window.addEventListener('context-compiler-live-event', event => {
     liveCompilerEvents = true;
-    const step = stepForEvent(event.detail || {});
+    const step = compilerStepForEvent(event.detail || {});
     if (step) activate(compiler, step);
   });
 
   window.addEventListener('context-compiler-result', event => {
     const data = event.detail || {};
     if (liveCompilerEvents) {
-      activate(compiler, data.status === 'UNKNOWN' ? 'unknown' : 'answer');
+      if (Array.isArray(data.plan_candidates) && data.plan_candidates.length) activate(compiler, 'candidate plans');
+      activate(compiler, 'release / hold');
       liveCompilerEvents = false;
       return;
     }
-    // Challenge Mode still returns a completed trace, so replay it there.
-    replay(compiler, compilerSequence(data), 240);
+    replay(compiler, compilerSequence(data));
+  });
+
+  window.addEventListener('context-receipt-issued', () => {
+    activate(compiler, 'receipt');
+    setTimeout(() => activate(compiler, 'dataset'), 180);
   });
 })();
