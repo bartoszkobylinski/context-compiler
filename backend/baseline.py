@@ -26,6 +26,14 @@ def build_baseline_context(corpus: dict[str, Document], question: str, top_k: in
     return "\n\n---\n\n".join(blocks), hits
 
 
+def _usage(response) -> dict[str, int]:
+    usage = getattr(response, "usage", None)
+    return {
+        "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
+        "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
+    }
+
+
 def answer_baseline(corpus: dict[str, Document], question: str, query_date=None, top_k: int = 3) -> dict:
     """Naive one-shot RAG control: retrieve top-k text once, answer once."""
     context, hits = build_baseline_context(corpus, question, top_k)
@@ -57,5 +65,6 @@ def answer_baseline(corpus: dict[str, Document], question: str, query_date=None,
         "hits": hits,
         "model": model,
         "mode": "one-shot-top-k-chunks",
+        "usage": _usage(response),
         "limitations": ["no version graph", "no temporal validity tool", "no authority graph", "no second retrieval pass"],
     }
