@@ -24,6 +24,7 @@ def test_supported_claim_requires_exact_quote_and_valid_source():
     }
     result = verify_answer(answer, CORPUS, date(2025, 8, 10))
     assert result["complete"] is True
+    assert result["coverage"]["complete"] is True
 
 
 def test_future_policy_is_rejected_for_past_query_date():
@@ -64,8 +65,40 @@ def test_paraphrased_quote_is_rejected():
 
 def test_unknown_requires_explicit_gap():
     result = verify_answer(
-        {"status": "UNKNOWN", "answer": "UNKNOWN", "claims": [], "unresolved": ["No policy addresses spouse meals."]},
+        {
+            "status": "UNKNOWN",
+            "answer": "The corpus does not establish whether this expense is allowed.",
+            "claims": [],
+            "unresolved": ["No policy addresses spouse meals."],
+        },
         CORPUS,
         date(2025, 8, 10),
     )
     assert result["complete"] is True
+
+
+def test_unsupported_material_sentence_is_rejected_even_when_claims_verify():
+    answer = {
+        "status": "SUPPORTED",
+        "answer": (
+            "Customer data is Confidential and external AI providers require explicit approval. "
+            "General-purpose AI assistants are typically not on the approved list."
+        ),
+        "claims": [
+            {
+                "claim": "Customer data is classified as Confidential.",
+                "source_id": "data-classification-policy",
+                "quote": "Customer data is classified as Confidential.",
+            },
+            {
+                "claim": "Confidential data must not be sent to external AI providers unless the provider is explicitly approved for Confidential data.",
+                "source_id": "ai-security-addendum",
+                "quote": "Confidential data must not be sent to external AI providers unless the provider is explicitly approved for Confidential data.",
+            },
+        ],
+        "unresolved": [],
+    }
+    result = verify_answer(answer, CORPUS, date(2025, 8, 10))
+    assert result["complete"] is False
+    assert result["coverage"]["complete"] is False
+    assert any("not covered" in item for item in result["missing"])
