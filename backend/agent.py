@@ -16,7 +16,7 @@ from .tools import (
     get_versions,
     follow_reference,
 )
-from .verifier import basic_verification
+from .verifier import verify_answer
 
 
 SYSTEM_PROMPT = """You are Context Compiler, an evidence-building agent.
@@ -33,13 +33,20 @@ Rules:
 5. Never infer a policy merely because it sounds likely.
 6. If the approved corpus does not establish the answer, return UNKNOWN.
 7. Before answering, ensure every material factual claim is backed by a source.
+8. For every supported claim include a SHORT VERBATIM quote copied exactly from
+   the cited document. The deterministic verifier checks exact quote membership.
 
 When you are ready to stop using tools, respond ONLY with JSON in this exact shape:
 {
   "status": "SUPPORTED" | "UNKNOWN" | "CONFLICT",
   "answer": "concise user-facing answer",
   "claims": [
-    {"claim": "material factual claim", "source_id": "document-id", "section": "optional section"}
+    {
+      "claim": "material factual claim",
+      "source_id": "document-id",
+      "section": "optional section",
+      "quote": "short exact quote copied verbatim from the document"
+    }
   ],
   "unresolved": ["anything still not established"]
 }
@@ -170,15 +177,11 @@ def _json_from_text(text: str) -> dict[str, Any]:
 
 
 def run_compiler(corpus: dict[str, Document], question: str, query_date: date | None) -> dict[str, Any]:
-    """Run the real Anthropic tool loop.
-
-    The model discovers evidence iteratively, while temporal validity remains a deterministic tool.
-    Frontend-safe events expose actions/results, never hidden chain-of-thought.
-    """
+    """Run the Anthropic evidence-building loop with a deterministic final verifier."""
     state = AgentState(question=question, query_date=query_date)
     client = _client()
 
-    date_text = query_date.isoformat() if query_date else "not explicitly supplied; interpret as current context only when needed"
+    date_text = query_date.isoformat() if query_date else "not explicitly supplied"
     messages: list[dict[str, Any]] = [
         {
             "role": "user",
@@ -194,7 +197,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         state.step = step + 1
         response = client.messages.create(
             model=_model(),
-            max_tokens=1400,
+            max_tokens=1600,
             temperature=0,
             system=SYSTEM_PROMPT,
             tools=TOOLS,
@@ -210,10 +213,9 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
             for tool_use in tool_uses:
                 try:
                     result = _execute_tool(corpus, tool_use.name, tool_use.input)
-                    event_type = _event_type(tool_use.name, result)
                     state.events.append(
                         ToolEvent(
-                            event_type,
+                            _event_type(tool_use.name, result),
                             f"{tool_use.name}({json.dumps(tool_use.input, ensure_ascii=False)})",
                             {"tool": tool_use.name, "input": tool_use.input, "result": result},
                         )
@@ -226,13 +228,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
                         }
                     )
                 except Exception as exc:
-                    state.events.append(
-                        ToolEvent(
-                            "TOOL_ERROR",
-                            f"{tool_use.name} failed",
-                            {"tool": tool_use.name, "error": str(exc)},
-                        )
-                    )
+                    state.events.append(ToolEvent("TOOL_ERROR", f"{tool_use.name} failed", {"error": str(exc)}))
                     tool_results.append(
                         {
                             "type": "tool_result",
@@ -252,51 +248,59 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         try:
             answer = _json_from_text(final_text)
         except Exception:
-            state.events.append(
-                ToolEvent("FORMAT_ERROR", "Model returned a non-JSON final answer", {"raw": final_text})
-            )
-            return {
-                "status": "UNKNOWN",
-                "answer": "UNKNOWN — final answer could not be verified.",
-                "events": [e.__dict__ for e in state.events],
-                "claims": [],
-                "unresolved": ["model output was not machine-verifiable JSON"],
-            }
+            state.events.append(ToolEvent("FORMAT_ERROR", "Model returned non-JSON final output", {"raw": final_text}))
+            messages.append({"role": "assistant", "content": final_text})
+            messages.append({"role": "user", "content": "Return only the required JSON object. Continue gathering evidence if needed."})
+            continue
 
-        verification = basic_verification(answer)
-        if answer.get("status") == "SUPPORTED" and not verification["complete"]:
+        verification = verify_answer(answer, corpus, query_date)
+        state.events.append(
+            ToolEvent(
+                "VERIFYING",
+                f"Deterministically verifying {len(answer.get('claims', []))} material claims",
+                {"checks": verification["checks"]},
+            )
+        )
+
+        if not verification["complete"]:
             state.events.append(
                 ToolEvent(
                     "EVIDENCE_GAP",
-                    "Answer contained unsupported claims",
+                    "Verifier rejected the proposed final answer",
                     {"missing": verification["missing"]},
                 )
             )
-            return {
-                "status": "UNKNOWN",
-                "answer": "UNKNOWN — evidence was insufficient to support every material claim.",
-                "events": [e.__dict__ for e in state.events],
-                "claims": answer.get("claims", []),
-                "unresolved": verification["missing"],
-            }
+            messages.append({"role": "assistant", "content": final_text})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "The deterministic verifier rejected this answer for these reasons:\n- "
+                        + "\n- ".join(verification["missing"])
+                        + "\nUse tools again to repair the evidence, or return UNKNOWN if it cannot be repaired."
+                    ),
+                }
+            )
+            continue
 
-        if answer.get("status") == "SUPPORTED":
+        status = answer.get("status")
+        if status == "SUPPORTED":
             state.events.append(
                 ToolEvent(
                     "SUPPORTED",
-                    f"{len(answer.get('claims', []))} material claims have cited evidence",
+                    f"{len(answer.get('claims', []))}/{len(answer.get('claims', []))} material claims passed deterministic verification",
+                    {"checks": verification["checks"]},
                 )
             )
-        elif answer.get("status") == "UNKNOWN":
-            state.events.append(
-                ToolEvent("UNKNOWN", "Approved corpus does not establish the answer")
-            )
+        elif status == "UNKNOWN":
+            state.events.append(ToolEvent("UNKNOWN", "Approved corpus does not establish the answer"))
         else:
-            state.events.append(ToolEvent("CONFLICT", "Evidence remains in conflict"))
+            state.events.append(ToolEvent("CONFLICT", "Approved sources remain in unresolved conflict"))
 
         return {
             **answer,
             "events": [e.__dict__ for e in state.events],
+            "verification": verification,
             "steps": state.step,
             "model": _model(),
         }
@@ -308,6 +312,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         "events": [e.__dict__ for e in state.events],
         "claims": [],
         "unresolved": ["max evidence-gathering steps reached"],
+        "verification": {"complete": True, "missing": [], "checks": []},
         "steps": state.step,
         "model": _model(),
     }
