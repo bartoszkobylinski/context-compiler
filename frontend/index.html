@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Context Compiler</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">AGENTIC LOOPS — HACKATHON DEMO</div>
+        <h1>Context Compiler</h1>
+        <p class="tagline">Don’t retrieve similar text. Build sufficient evidence.</p>
+      </div>
+      <div class="health" id="health">Checking API…</div>
+    </header>
+
+    <section class="query-card">
+      <div class="query-grid">
+        <label class="field grow">
+          <span>Question</span>
+          <input id="question" value="Can a contractor access customer data from a personal laptop using VPN?" />
+        </label>
+        <label class="field date-field">
+          <span>Point in time</span>
+          <input id="queryDate" type="date" value="2025-06-10" />
+        </label>
+        <button id="runBtn" class="run-btn">Run comparison</button>
+      </div>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="comparison">
+      <article class="panel baseline-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-kicker">CONTROL</div>
+            <h2>Traditional RAG</h2>
+          </div>
+          <div class="badge neutral" id="baselineBadge">ONE-SHOT</div>
+        </div>
+        <div class="flow-mini">question → top-k → answer</div>
+        <div class="answer-box" id="baselineAnswer">
+          <div class="empty">Run a case to see the one-shot answer.</div>
+        </div>
+        <div class="sources" id="baselineSources"></div>
+      </article>
+
+      <article class="panel compiler-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-kicker">EVIDENCE LOOP</div>
+            <h2>Context Compiler</h2>
+          </div>
+          <div class="badge neutral" id="compilerBadge">READY</div>
+        </div>
+        <div class="flow-mini">requirements → search → inspect → verify → answer / unknown</div>
+        <div class="answer-box" id="compilerAnswer">
+          <div class="empty">The agent will expose actions, not private chain-of-thought.</div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </article>
+    </section>
+
+    <section class="footer-note">
+      <strong>Core claim:</strong> every retrieved document can be real and the answer can still be wrong — if the evidence is incomplete, outdated, or valid at the wrong point in time.
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
