@@ -25,8 +25,12 @@ Your job is NOT to answer immediately. First declare what evidence must be estab
 then use tools iteratively to gather it. Retrieval is a process, not a stopping rule.
 
 Rules:
-1. Your FIRST tool call must be declare_requirements. List the concrete facts that must
-   be established before the question can be answered safely.
+1. Your FIRST tool call must be declare_requirements. List only the concrete facts that are
+   actually necessary to decide the user's requested action or a supported alternative.
+   Requirements must be atomic and decision-relevant. Do NOT add generic attributes such
+   as weight, dimensions, account details, or other fields unless the decision genuinely
+   depends on them. Do not bundle unnecessary facts into a requirement just because they
+   might exist in an order record.
 2. Treat retrieval as a loop, not a one-shot lookup. Reformulate searches when evidence
    is missing and follow explicit dependencies between documents.
 3. Prefer authoritative and temporally valid sources.
@@ -102,7 +106,7 @@ or CONFLICT, unresolved must explicitly explain the blocking evidence gap or con
 TOOLS = [
     {
         "name": "declare_requirements",
-        "description": "Declare the concrete evidence requirements that must be satisfied before answering. This must be your first tool call.",
+        "description": "Declare the minimum atomic evidence requirements actually needed to decide the requested action or a supported alternative. Include only decision-relevant facts; do not add generic fields such as weight or dimensions unless the decision depends on them. This must be your first tool call.",
         "input_schema": {
             "type": "object",
             "properties": {
