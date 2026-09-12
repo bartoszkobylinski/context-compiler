@@ -44,7 +44,6 @@ def answer_baseline(corpus: dict[str, Document], question: str, query_date=None,
     response = client.messages.create(
         model=model,
         max_tokens=600,
-        temperature=0,
         system=(
             "Answer using only the retrieved chunks below. Be concise and cite document ids. "
             "You do not have access to any hidden metadata or additional retrieval. "

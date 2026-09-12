@@ -10,13 +10,13 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
-          python-version: '3.12'
+          enable-cache: true
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt
+        run: uv sync --frozen
       - name: Run tests
-        run: python -m pytest -q
+        run: uv run pytest -q
       - name: Inspect retrieval trap
-        run: python -m evals.inspect_retrieval
+        run: uv run python -m evals.inspect_retrieval

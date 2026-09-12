@@ -59,15 +59,16 @@ If verification fails, the answer is rejected and the agent goes back into the r
 ## Run locally
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+uv sync
 
-export ANTHROPIC_API_KEY="..."
-export ANTHROPIC_MODEL="..."
+cp .env.example .env
+# then put your key in .env: ANTHROPIC_API_KEY=...
 
-uvicorn backend.main:app --reload
+make api
 ```
+
+`.env` is loaded automatically on import (`backend/__init__.py`); it overrides any
+`ANTHROPIC_*` already exported in the shell.
 
 In another terminal:
 
@@ -81,13 +82,13 @@ Open `http://localhost:3000`.
 ## Test
 
 ```bash
-pytest -q
+make test
 ```
 
 ## Run the demo eval set
 
 ```bash
-python -m evals.run_eval
+make eval
 ```
 
 Detailed results are written to `evals/latest-results.json`.

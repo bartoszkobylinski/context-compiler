@@ -1,0 +1,25 @@
+[project]
+name = "context-compiler"
+version = "0.1.0"
+description = "Temporal-aware retrieval agent that proves its answers against a versioned policy corpus."
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.40",
+    "fastapi>=0.115",
+    "httpx>=0.27",
+    "pydantic>=2.8",
+    "python-dotenv>=1.0",
+    "python-frontmatter>=1.1",
+    "PyYAML>=6.0",
+    "uvicorn[standard]>=0.30",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.uv]
+# The repo is imported via PYTHONPATH=. (backend/, evals/, tests/), not installed
+# as a distribution, so uv only resolves dependencies.
+package = false

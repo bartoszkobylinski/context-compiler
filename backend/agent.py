@@ -217,7 +217,24 @@ def _json_from_text(text: str) -> dict[str, Any]:
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         text = "\n".join(lines)
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # The model sometimes narrates before the object ("Now I'll finalize...").
+    # Take the first complete JSON object embedded in the text instead.
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(text):
+        if char != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(text, index)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
+    raise ValueError("no JSON object found in model output")
 
 
 def run_compiler(corpus: dict[str, Document], question: str, query_date: date | None) -> dict[str, Any]:
@@ -242,8 +259,7 @@ def run_compiler(corpus: dict[str, Document], question: str, query_date: date | 
         state.step = step + 1
         response = client.messages.create(
             model=_model(),
-            max_tokens=1600,
-            temperature=0,
+            max_tokens=8000,
             system=SYSTEM_PROMPT,
             tools=TOOLS,
             messages=messages,
