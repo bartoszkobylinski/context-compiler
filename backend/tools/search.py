@@ -23,8 +23,8 @@ def _cosine(a: Counter, b: Counter) -> float:
 def semantic_search(corpus: dict[str, Document], query: str, limit: int = 5) -> list[dict]:
     """Hackathon-local lexical stand-in for embeddings.
 
-    Swap this implementation for real embeddings if useful. Keeping the tool contract stable
-    lets the agent architecture remain unchanged.
+    Search hits expose explicit dependency edges so the agent can follow authoritative
+    references instead of repeatedly reformulating broad searches.
     """
     q = Counter(_tokens(query))
     scored = []
@@ -34,7 +34,12 @@ def semantic_search(corpus: dict[str, Document], query: str, limit: int = 5) -> 
         scored.append((score, doc))
     scored.sort(key=lambda x: x[0], reverse=True)
     return [
-        {"id": d.id, "title": d.title, "score": round(score, 4)}
+        {
+            "id": d.id,
+            "title": d.title,
+            "score": round(score, 4),
+            "references": list(d.references),
+        }
         for score, d in scored[:limit]
     ]
 
@@ -48,7 +53,12 @@ def keyword_search(corpus: dict[str, Document], query: str, limit: int = 5) -> l
         scored.append((overlap, doc))
     scored.sort(key=lambda x: x[0], reverse=True)
     return [
-        {"id": d.id, "title": d.title, "matches": score}
+        {
+            "id": d.id,
+            "title": d.title,
+            "matches": score,
+            "references": list(d.references),
+        }
         for score, d in scored[:limit]
         if score > 0
     ]
