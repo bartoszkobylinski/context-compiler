@@ -101,7 +101,7 @@
           </div>
           <div class="badge neutral" id="compilerBadge">READY</div>
         </div>
-        <div class="flow-mini">requirements → search → inspect dependencies → verify → re-plan → release / hold</div>
+        <div class="flow-mini">requirements → retrieve → resolve → plan → verify → repair → release / hold → receipt → verified dataset</div>
         <div class="answer-box" id="compilerAnswer">
           <div class="empty">The agent exposes operational actions and evidence, not private chain-of-thought.</div>
         </div>
@@ -115,7 +115,7 @@
     </section>
 
     <section class="footer-note">
-      <strong>Business claim:</strong> retrieval can explain a rule; an operational agent needs enough verified evidence to decide whether an action can execute, what must change when it cannot, and why the released plan is safe to act on.
+      <strong>Business claim:</strong> retrieval can explain a rule; an operational agent needs enough verified evidence to decide whether an action can execute, what must change when it cannot, and why the released plan is safe to act on. Each verified release also produces a receipt that can become a high-quality supervision record for future retrieval, routing and requirement generation.
     </section>
   </main>
   <script src="./repair-ui.js"></script>
